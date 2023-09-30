@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Nethereum.Geth" Version="4.15.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BlockStorm.Arb.Algorithm\BlockStorm.Arb.Algorithm.csproj" />
+    <ProjectReference Include="..\BlockStorm.DBModels\BlockStorm.EFModels.csproj" />
+    <ProjectReference Include="..\BlockStorm.Nethereum\BlockStorm.NethereumModule.csproj" />
+    <ProjectReference Include="..\BlockStorm.Utils\BlockStorm.Utils.csproj" />
+  </ItemGroup>
+
+</Project>

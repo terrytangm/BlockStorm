@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-BlockStorm.Arb.UpdateTokenPriceSvc-1a823361-c80b-48e9-8408-c5607ca04e2c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BlockStorm.BinanceConnector\BlockStorm.BinanceConnector.csproj" />
+    <ProjectReference Include="..\BlockStorm.DBModels\BlockStorm.EFModels.csproj" />
+    <ProjectReference Include="..\BlockStorm.Utils\BlockStorm.Utils.csproj" />
+  </ItemGroup>
+</Project>
