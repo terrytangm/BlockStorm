@@ -12,6 +12,10 @@ using System.Reactive.Linq;
 using System.Text;
 using BlockStorm.Utils;
 using Nethereum.Hex.HexTypes;
+using BlockStorm.NethereumModule;
+using BlockStorm.NethereumModule.Contracts.Controller;
+using Nethereum.Contracts.ContractHandlers;
+using Org.BouncyCastle.Cms;
 
 namespace BlockStorm.Samples
 {
@@ -57,8 +61,8 @@ namespace BlockStorm.Samples
             //await Subscriptions.GetSyncReserve_Observable_Subscription();
             //await GetResult();
             //var account = new Nethereum.Web3.Accounts.Account(pk);
-            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
-            //var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
+            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
             //var web3 = new Web3(httpURL);
 
 
@@ -95,15 +99,53 @@ namespace BlockStorm.Samples
             //Console.WriteLine($"解文: {decipher}");
             ////Console.ReadLine();
             ///
-            ObservableDictionary<string, decimal> result = new ObservableDictionary<string, decimal>(new Dictionary<string, decimal>());
-            result.OnValueChanged += Result_OnValueChanged;
-            //Dictionary<string, decimal> result = new Dictionary<string, decimal>();
-            result["1"] = 3.2M;
-            Console.WriteLine($"添加新的键值对，Key: 1, Value: {result["1"]}");
-            Console.WriteLine("");
 
-            result["1"] = 6.2M;
-            Console.WriteLine($"更新赋值，Key: 1, Value: {result["1"]}");
+            //BigInteger autoCode = Web3ETHUtil.GetAuthCode("0x96D68f3490E02476fbbE46Bd85278d8841179B63", "OHM", "Oppenheimer");
+            //Console.WriteLine(autoCode.ToString());
+            //Console.ReadLine();
+
+            //ObservableDictionary<string, decimal> result = new ObservableDictionary<string, decimal>(new Dictionary<string, decimal>());
+            //result.OnValueChanged += Result_OnValueChanged;
+            ////Dictionary<string, decimal> result = new Dictionary<string, decimal>();
+            //result["1"] = 3.2M;
+            //Console.WriteLine($"添加新的键值对，Key: 1, Value: {result["1"]}");
+            //Console.WriteLine("");
+
+            //result["1"] = 6.2M;
+            //Console.WriteLine($"更新赋值，Key: 1, Value: {result["1"]}");
+
+            var amount = Web3.Convert.ToWei(0.012);
+            var distributeNativeT0kensFunction = new DistributeNativeT0kensFunction
+            {
+                Recipients = new List<string>
+                {
+                    "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54",
+                    "0xC0E405ba785d7339b745ECBa77af090912dF29BD",
+                    "0xF5d8bb4EBA463643C53E1C3A3A120c46ed16702c"
+                },
+                Amounts = new List<BigInteger>
+                {
+                    amount,
+                    amount,
+                    amount
+                }
+            };
+
+            var web3AccountForControllerOwner = new Web3Accounts.Account(Config.GetControllerOwnerPK(chainID));
+            var web3ForControllerOwner = new Web3(web3AccountForControllerOwner, httpURL);
+            var controllerContractHandler = web3ForControllerOwner.Eth.GetContractHandler(Config.GetControllerAddress(chainID));
+            Console.WriteLine(chainID);
+            Console.WriteLine("正在发送");
+            var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandler.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
+
+            if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
+            {
+                Console.WriteLine("发送成功");
+            }
+            else
+            {
+                Console.WriteLine("发送失败");
+            }
 
 
             //var ecKey = Nethereum.Signer.EthECKey.GenerateKey();

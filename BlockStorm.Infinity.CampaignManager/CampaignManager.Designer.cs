@@ -336,11 +336,11 @@
             lblPriceUpPercentage.Size = new Size(0, 17);
             lblPriceUpPercentage.TabIndex = 46;
             // 
-            // lblAddliquidityMessage
+            // lblMessage
             // 
             lblMessage.AutoSize = true;
             lblMessage.Location = new Point(498, 155);
-            lblMessage.Name = "lblAddliquidityMessage";
+            lblMessage.Name = "lblMessage";
             lblMessage.Size = new Size(0, 17);
             lblMessage.TabIndex = 45;
             // 
@@ -647,6 +647,7 @@
             btnWithdraw.TabIndex = 1;
             btnWithdraw.Text = "增发砸盘";
             btnWithdraw.UseVisualStyleBackColor = true;
+            btnWithdraw.Click += btnWithdraw_Click;
             // 
             // btnLaunchCloseDoor
             // 

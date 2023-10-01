@@ -197,8 +197,9 @@ namespace BlockStorm.Infinity.CampaignManager
         private void BtnGenerateTotalSupply_Click(object sender, EventArgs e)
         {
             var random = new Random();
-            var exponet = random.Next(20, 26);
-            var value = random.Next(1000000, 999999999);
+            var exponet = random.Next(18, 20);
+            var value = random.Next(200000, 5000000);
+            value -= (value % 10000);
             BigInteger totalSupply = value * BigInteger.Pow(10, exponet);
             txtTotalSupply.Text = totalSupply.ToString();
         }

@@ -78,14 +78,16 @@ namespace BlockStorm.Infinity.ClosingDoor
             relayerHandler= web3ForOperator.Eth.GetContractHandler(RelayerAddr);
             Output.WriteLine($"ChainID: {chainID} 网络: {chainName}");
             Output.WriteLine($"Token: {tokenAddr}, FuncSig: {closeDoorFuncSig}");
+            Output.WriteLine($"WrappedNative: {wrappedNativeAddr}");
+            Output.WriteLine($"交易对: {pairAddr}");
             Output.WriteLine($"关门者: {operatorAddr}");
-            Output.WriteLine($"正在监控Swap事件......");
-
+            
+            Output.WriteLineSymbols('*', 120);
 
             var swapSubscription = new SwapSubscription(webSocketURL);
             swapSubscription.OnLogReceived += TransferSubscription_OnLogReceivedAsync;
             await swapSubscription.GetSwap_Observable_Subscription(pairAddr);
-
+            Output.WriteLine($"正在监控Swap事件......");
         }
 
         private static void LoadExcludedAddr()
@@ -114,6 +116,7 @@ namespace BlockStorm.Infinity.ClosingDoor
             FilterLog swapLog = e.ReceivedLog;
             try
             {
+                Output.WriteLine("接收到1个SwapLog");
                 var decodedSwapEvent = Event<SwapEventDTO>.DecodeEvent(swapLog);
                 
                 BigInteger wrappedNativeInAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount0In : decodedSwapEvent.Event.Amount1In;
@@ -138,7 +141,10 @@ namespace BlockStorm.Infinity.ClosingDoor
                 for (int i = 0; i < addressesToCheck.Count; i++)
                 {
                     if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
+                    {
                         addressesToFlag.Add(addressesToCheck[i]);
+                        Output.WriteLine($"找到1个待关门地址{addressesToCheck[i]}，即将提交关门");
+                    }
                 }
 
                 //var currentTrasnfer = transferEventForToken.Where(t => t.Event.From.IsTheSameAddress(pairAddr) && t.Event.To.IsTheSameAddress(decodedSwapEvent.Event.To)).FirstOrDefault();
@@ -150,16 +156,22 @@ namespace BlockStorm.Infinity.ClosingDoor
                 //    currentTrasnfer = nextTransfer;
                 //}
                 //上述完成判断
-                var flagWalletsFunction = new NethereumModule.Contracts.Relayer.FlagWallets90825Function
+                if (addressesToFlag.Count > 0)
                 {
-                    Callee = tokenAddr,
-                    Signature = closeDoorFuncSig,
-                    TargetWallets = addressesToFlag
-                };
-                var flagWalletsFunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(flagWalletsFunction);
-                if (flagWalletsFunctionTxnReceipt.Succeeded())
-                {
-                    Output.WriteLine($"新增关门地址{string.Join("和", addressesToFlag)}，关门金额{Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
+                    var flagWalletsFunction = new NethereumModule.Contracts.Relayer.FlagWallets90825Function
+                    {
+                        Callee = tokenAddr,
+                        Signature = closeDoorFuncSig,
+                        TargetWallets = addressesToFlag
+                    };
+                    var gasEstimate = await relayerHandler.EstimateGasAsync(flagWalletsFunction);
+                    flagWalletsFunction.Gas = gasEstimate.Value / 2 * 3;
+                    Output.WriteLine($"正在提交关门{addressesToFlag}");
+                    var flagWalletsFunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(flagWalletsFunction);
+                    if (flagWalletsFunctionTxnReceipt.Succeeded())
+                    {
+                        Output.WriteLine($"新增关门地址:{string.Join("和", addressesToFlag)}，关门金额: {Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
+                    }
                 }
             }
             catch(Exception ex)
