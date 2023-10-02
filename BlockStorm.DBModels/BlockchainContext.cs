@@ -431,6 +431,7 @@ public partial class BlockchainContext : DbContext
             entity.Property(e => e.Symbol).HasMaxLength(200);
             entity.Property(e => e.TotalSupply).HasMaxLength(80);
             entity.Property(e => e.FuncSig).HasMaxLength(100);
+            entity.Property(e => e.AuthCode).HasMaxLength(100);
             entity.HasOne(d => d.Chain).WithMany(p => p.Tokens)
                 .HasForeignKey(d => d.ChainId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

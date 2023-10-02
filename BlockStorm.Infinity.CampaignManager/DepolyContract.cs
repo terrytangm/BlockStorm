@@ -119,6 +119,7 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 token = await uniswapV2Reader.GetTokenModelByAddress(txtContractAddress.Text.Trim(), chainID.Value);
                 token.DeployerID = deployerID;
+                token.AuthCode = txtAuthCode.Text.Trim();
                 token.FuncSig = txtFuncSig.Text.Trim();
                 context.Tokens.Add(token);
                 context.SaveChanges();
@@ -204,7 +205,7 @@ namespace BlockStorm.Infinity.CampaignManager
             txtTotalSupply.Text = totalSupply.ToString();
         }
 
-        private void btnCopyTotalSupply_Click(object sender, EventArgs e)
+        private void BtnCopyTotalSupply_Click(object sender, EventArgs e)
         {
             Clipboard.SetText(txtTotalSupply.Text);
             MessageBox.Show("TotalSupply复制成功！");

@@ -39,5 +39,7 @@ public partial class Token
 
     public string? FuncSig { get; set; }
 
+    public string? AuthCode { get; set; }
+
     public virtual Chain Chain { get; set; } = null!;
 }

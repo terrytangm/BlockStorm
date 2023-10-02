@@ -16,6 +16,7 @@ using BlockStorm.NethereumModule;
 using BlockStorm.NethereumModule.Contracts.Controller;
 using Nethereum.Contracts.ContractHandlers;
 using Org.BouncyCastle.Cms;
+using Nethereum.Util;
 
 namespace BlockStorm.Samples
 {
@@ -61,8 +62,8 @@ namespace BlockStorm.Samples
             //await Subscriptions.GetSyncReserve_Observable_Subscription();
             //await GetResult();
             //var account = new Nethereum.Web3.Accounts.Account(pk);
-            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
-            var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
+            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            //var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
             //var web3 = new Web3(httpURL);
 
 
@@ -114,39 +115,41 @@ namespace BlockStorm.Samples
             //result["1"] = 6.2M;
             //Console.WriteLine($"更新赋值，Key: 1, Value: {result["1"]}");
 
-            var amount = Web3.Convert.ToWei(0.012);
-            var distributeNativeT0kensFunction = new DistributeNativeT0kensFunction
-            {
-                Recipients = new List<string>
-                {
-                    "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54",
-                    "0xC0E405ba785d7339b745ECBa77af090912dF29BD",
-                    "0xF5d8bb4EBA463643C53E1C3A3A120c46ed16702c"
-                },
-                Amounts = new List<BigInteger>
-                {
-                    amount,
-                    amount,
-                    amount
-                }
-            };
+            //var amount = Web3.Convert.ToWei(0.012);
+            //var distributeNativeT0kensFunction = new DistributeNativeT0kensFunction
+            //{
+            //    Recipients = new List<string>
+            //    {
+            //        "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54",
+            //        "0xC0E405ba785d7339b745ECBa77af090912dF29BD",
+            //        "0xF5d8bb4EBA463643C53E1C3A3A120c46ed16702c"
+            //    },
+            //    Amounts = new List<BigInteger>
+            //    {
+            //        amount,
+            //        amount,
+            //        amount
+            //    }
+            //};
 
-            var web3AccountForControllerOwner = new Web3Accounts.Account(Config.GetControllerOwnerPK(chainID));
-            var web3ForControllerOwner = new Web3(web3AccountForControllerOwner, httpURL);
-            var controllerContractHandler = web3ForControllerOwner.Eth.GetContractHandler(Config.GetControllerAddress(chainID));
-            Console.WriteLine(chainID);
-            Console.WriteLine("正在发送");
-            var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandler.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
+            //var web3AccountForControllerOwner = new Web3Accounts.Account(Config.GetControllerOwnerPK(chainID));
+            //var web3ForControllerOwner = new Web3(web3AccountForControllerOwner, httpURL);
+            //var controllerContractHandler = web3ForControllerOwner.Eth.GetContractHandler(Config.GetControllerAddress(chainID));
+            //Console.WriteLine(chainID);
+            //Console.WriteLine("正在发送");
+            //var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandler.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
 
-            if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
-            {
-                Console.WriteLine("发送成功");
-            }
-            else
-            {
-                Console.WriteLine("发送失败");
-            }
-
+            //if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
+            //{
+            //    Console.WriteLine("发送成功");
+            //}
+            //else
+            //{
+            //    Console.WriteLine("发送失败");
+            //}
+            var str1 = "0x000000000000000000000000008b5395d595ebe4ddf4ae000d0a9eb2d381d282";
+            var str2 = "0x008B5395d595ebE4ddF4Ae000D0a9eB2D381D282";
+            Console.WriteLine(str1.Substring(str1.Length - 40, 40).IsTheSameAddress(str2));
 
             //var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
             //var privateKey = ecKey.GetPrivateKeyAsBytes().ToHex();

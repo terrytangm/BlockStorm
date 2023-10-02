@@ -187,7 +187,7 @@
             btnCopyTotalSupply.TabIndex = 16;
             btnCopyTotalSupply.Text = "复制";
             btnCopyTotalSupply.UseVisualStyleBackColor = true;
-            btnCopyTotalSupply.Click += btnCopyTotalSupply_Click;
+            btnCopyTotalSupply.Click += BtnCopyTotalSupply_Click;
             // 
             // txtTotalSupply
             // 

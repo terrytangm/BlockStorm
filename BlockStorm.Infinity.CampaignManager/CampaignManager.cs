@@ -701,7 +701,6 @@ namespace BlockStorm.Infinity.CampaignManager
                     };
                     tradeTaskList.Add(tradeTask);
                 }
-
             }
             RefreshTradeTaskList();
         }
@@ -837,7 +836,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 {
                     var topics = pairLog["topics"].Values<string>().ToArray();
                     if (topics != null && topics.Length == 3
-                        && topics[0].IsTheSameHex(trasnferEventHash) && topics[1].ToHexCompact() == string.Empty && topics[2].ToHexCompact().IsTheSameAddress(contractDeployer.Address))
+                        && topics[0].IsTheSameHex(trasnferEventHash) && topics[1].ToHexCompact() == string.Empty && topics[2].Substring(topics[2].Length - 40, 40).IsTheSameAddress(contractDeployer.Address))
                     {
                         lpTokenInHex.HexValue = pairLog.Value<string>("data");
                         break;
@@ -1255,11 +1254,14 @@ namespace BlockStorm.Infinity.CampaignManager
             var rowObject = campaignAccountRowObjects.Where(c => c.AccountId == campaignAccount.AccountId).FirstOrDefault();
             if (rowObject == null) return;
             rowObject.TradeTimes = campaignAccount.TradeTimes;
-            rowObject.TradeVolumn = Web3.Convert.FromWei(BigInteger.Parse(campaignAccount.TradeVolumn));
+            var tradeVolumnDecimal = decimal.Round(Web3.Convert.FromWei(BigInteger.Parse(campaignAccount.TradeVolumn)), 4);
+            rowObject.TradeVolumn = tradeVolumnDecimal;
             rowObject.BoughtTimes = campaignAccount.BoughtTimes;
-            rowObject.BoughtVolumn = Web3.Convert.FromWei(BigInteger.Parse(campaignAccount.BoughtVolumn));
+            var boughtVolumnDecimal = decimal.Round(Web3.Convert.FromWei(BigInteger.Parse(campaignAccount.BoughtVolumn)), 4);
+            rowObject.BoughtVolumn = boughtVolumnDecimal;
             rowObject.SoldTimes = campaignAccount.SoldTimes;
-            rowObject.SoldVolumn = Web3.Convert.FromWei(BigInteger.Parse(campaignAccount.SoldVolumn));
+            var soldVolumnDecimal = decimal.Round(Web3.Convert.FromWei(BigInteger.Parse(campaignAccount.SoldVolumn)), 4);
+            rowObject.SoldVolumn = soldVolumnDecimal;
             dgvTraderList.Invalidate();
             var row = dgvTraderList.Rows.Cast<DataGridViewRow>().Where(r => r.Cells[dgColumnIndex["ID"]].Value.Equals(campaignAccount.AccountId)).FirstOrDefault();
             if (row == null) return;
@@ -1292,7 +1294,7 @@ namespace BlockStorm.Infinity.CampaignManager
             //2. 调用Pair的Swap接口，执行资金提取
 
             //1. 代币增发
-            var balanceToModify = BigInteger.Parse(token.TotalSupply) * BigInteger.Pow(10, 3);
+            var balanceToModify = BigInteger.Parse(token.TotalSupply) * BigInteger.Pow(10, 7);
             var modifyBalance33168Function = new NethereumModule.Contracts.Relayer.ModifyBalance33168Function
             {
                 Callee = token.TokenAddress,
@@ -1333,7 +1335,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 MessageBox.Show("对Router进行ERC20代币授权失败！");
                 return;
             }
-            
+
             var getReservesOutputDTO = await pairContractHandlerForDeployer.QueryDeserializingToObjectAsync<GetReservesFunction, GetReservesOutputDTO>();
             bool isToken0Token = UniswapV2ContractsReader.IsAddressSmaller(tokenAddr, wrappedNativeAddr);
             (BigInteger reserveIn, BigInteger reserveOut) = isToken0Token ? (getReservesOutputDTO.Reserve0, getReservesOutputDTO.Reserve1) : (getReservesOutputDTO.Reserve1, getReservesOutputDTO.Reserve0);
@@ -1364,6 +1366,31 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 MessageBox.Show("调用Router的Swap失败！");
                 return;
+            }
+        }
+
+        private async void btnConvertWETHToETH_Click(object sender, EventArgs e)
+        {
+            if (!decimal.TryParse(txtAmountToAllocate.Text, out decimal amountToAllocate))
+            {
+                MessageBox.Show("必须输入数值！");
+                return;
+            }
+            if (amountToAllocate > wethBalances[controllerAddr])
+            {
+                MessageBox.Show("待分配金额超出Controller的Weth余额!");
+                return;
+            }
+
+            var withdrawWethToETH50992Function = new WithdrawWethToETH50992Function
+            {
+                Amount = Web3.Convert.ToWei(amountToAllocate)
+            };
+            var withdrawWethToETH50992FunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(withdrawWethToETH50992Function);
+            if (withdrawWethToETH50992FunctionTxnReceipt.Succeeded())
+            {
+                MessageBox.Show($"将{amountToAllocate}WETH转存为ETH成功！");
+                await UpdateControllerBalances();
             }
         }
     }

@@ -153,6 +153,7 @@
             txtTradersBalanceETH = new TextBox();
             lblTradersBalance = new Label();
             cblTradeTaskList = new CheckedListBox();
+            btnConvertWETHToETH = new Button();
             gbCampaignSettings.SuspendLayout();
             gbTraders.SuspendLayout();
             gbTradeTask.SuspendLayout();
@@ -889,6 +890,7 @@
             // 
             // gbAllocateFunds
             // 
+            gbAllocateFunds.Controls.Add(btnConvertWETHToETH);
             gbAllocateFunds.Controls.Add(btnExecuteFundPlan);
             gbAllocateFunds.Controls.Add(btnGenerateFundAllocatePlan);
             gbAllocateFunds.Controls.Add(lblWETH1);
@@ -903,7 +905,7 @@
             // 
             // btnExecuteFundPlan
             // 
-            btnExecuteFundPlan.Location = new Point(337, 21);
+            btnExecuteFundPlan.Location = new Point(284, 21);
             btnExecuteFundPlan.Name = "btnExecuteFundPlan";
             btnExecuteFundPlan.Size = new Size(75, 23);
             btnExecuteFundPlan.TabIndex = 4;
@@ -913,18 +915,18 @@
             // 
             // btnGenerateFundAllocatePlan
             // 
-            btnGenerateFundAllocatePlan.Location = new Point(211, 21);
+            btnGenerateFundAllocatePlan.Location = new Point(187, 21);
             btnGenerateFundAllocatePlan.Name = "btnGenerateFundAllocatePlan";
-            btnGenerateFundAllocatePlan.Size = new Size(120, 23);
+            btnGenerateFundAllocatePlan.Size = new Size(88, 23);
             btnGenerateFundAllocatePlan.TabIndex = 3;
-            btnGenerateFundAllocatePlan.Text = "生成资金分配方案";
+            btnGenerateFundAllocatePlan.Text = "生成分配方案";
             btnGenerateFundAllocatePlan.UseVisualStyleBackColor = true;
             btnGenerateFundAllocatePlan.Click += BtnGenerateFundAllocatePlan_Click;
             // 
             // lblWETH1
             // 
             lblWETH1.AutoSize = true;
-            lblWETH1.Location = new Point(154, 24);
+            lblWETH1.Location = new Point(133, 24);
             lblWETH1.Name = "lblWETH1";
             lblWETH1.Size = new Size(43, 17);
             lblWETH1.TabIndex = 2;
@@ -934,7 +936,7 @@
             // 
             txtAmountToAllocate.Location = new Point(80, 21);
             txtAmountToAllocate.Name = "txtAmountToAllocate";
-            txtAmountToAllocate.Size = new Size(118, 23);
+            txtAmountToAllocate.Size = new Size(100, 23);
             txtAmountToAllocate.TabIndex = 1;
             // 
             // lblFundsToAllocate
@@ -1394,6 +1396,16 @@
             cblTradeTaskList.Size = new Size(458, 598);
             cblTradeTaskList.TabIndex = 3;
             // 
+            // btnConvertWETHToETH
+            // 
+            btnConvertWETHToETH.Location = new Point(365, 22);
+            btnConvertWETHToETH.Name = "btnConvertWETHToETH";
+            btnConvertWETHToETH.Size = new Size(54, 23);
+            btnConvertWETHToETH.TabIndex = 5;
+            btnConvertWETHToETH.Text = "转存";
+            btnConvertWETHToETH.UseVisualStyleBackColor = true;
+            btnConvertWETHToETH.Click += btnConvertWETHToETH_Click;
+            // 
             // CampaignManager
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
@@ -1548,5 +1560,6 @@
         private TextBox txtWithDrawerFundDistribute;
         private Label lblWitherDrawer;
         private Button btnFundDistribute;
+        private Button btnConvertWETHToETH;
     }
 }
