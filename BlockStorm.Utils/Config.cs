@@ -14,7 +14,13 @@ namespace BlockStorm.Utils
         ETHMainNetLocal,
         ETHMainNetInfura,
         ETHMainNetAlchemy,
-        ETHMainNetQuickNode
+        ETHMainNetQuickNode,
+        ETHGoerliAlchemy,
+        ArbitrumQuickNode,
+        BSCQuickNode,
+        ArbitrumAlchemy,
+        ArbitrumInfura,
+        ETHGoerliFork
     }
 
     public enum ChainConfigPart

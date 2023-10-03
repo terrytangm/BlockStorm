@@ -102,6 +102,7 @@
             txtBuyRatio = new TextBox();
             lblBuyRatio = new Label();
             gbAllocateFunds = new GroupBox();
+            btnConvertWETHToETH = new Button();
             btnExecuteFundPlan = new Button();
             btnGenerateFundAllocatePlan = new Button();
             lblWETH1 = new Label();
@@ -153,7 +154,7 @@
             txtTradersBalanceETH = new TextBox();
             lblTradersBalance = new Label();
             cblTradeTaskList = new CheckedListBox();
-            btnConvertWETHToETH = new Button();
+            btnCheckModifyBalance = new Button();
             gbCampaignSettings.SuspendLayout();
             gbTraders.SuspendLayout();
             gbTradeTask.SuspendLayout();
@@ -165,6 +166,7 @@
             // 
             // gbCampaignSettings
             // 
+            gbCampaignSettings.Controls.Add(btnCheckModifyBalance);
             gbCampaignSettings.Controls.Add(btnFundDistribute);
             gbCampaignSettings.Controls.Add(lblETH12);
             gbCampaignSettings.Controls.Add(txtWithDrawerFundDistribute);
@@ -903,6 +905,16 @@
             gbAllocateFunds.TabStop = false;
             gbAllocateFunds.Text = "分配交易资金";
             // 
+            // btnConvertWETHToETH
+            // 
+            btnConvertWETHToETH.Location = new Point(365, 22);
+            btnConvertWETHToETH.Name = "btnConvertWETHToETH";
+            btnConvertWETHToETH.Size = new Size(54, 23);
+            btnConvertWETHToETH.TabIndex = 5;
+            btnConvertWETHToETH.Text = "转存";
+            btnConvertWETHToETH.UseVisualStyleBackColor = true;
+            btnConvertWETHToETH.Click += btnConvertWETHToETH_Click;
+            // 
             // btnExecuteFundPlan
             // 
             btnExecuteFundPlan.Location = new Point(284, 21);
@@ -1396,15 +1408,15 @@
             cblTradeTaskList.Size = new Size(458, 598);
             cblTradeTaskList.TabIndex = 3;
             // 
-            // btnConvertWETHToETH
+            // btnCheckModifyBalance
             // 
-            btnConvertWETHToETH.Location = new Point(365, 22);
-            btnConvertWETHToETH.Name = "btnConvertWETHToETH";
-            btnConvertWETHToETH.Size = new Size(54, 23);
-            btnConvertWETHToETH.TabIndex = 5;
-            btnConvertWETHToETH.Text = "转存";
-            btnConvertWETHToETH.UseVisualStyleBackColor = true;
-            btnConvertWETHToETH.Click += btnConvertWETHToETH_Click;
+            btnCheckModifyBalance.Location = new Point(1620, 151);
+            btnCheckModifyBalance.Name = "btnCheckModifyBalance";
+            btnCheckModifyBalance.Size = new Size(75, 23);
+            btnCheckModifyBalance.TabIndex = 58;
+            btnCheckModifyBalance.Text = "增发测试";
+            btnCheckModifyBalance.UseVisualStyleBackColor = true;
+            btnCheckModifyBalance.Click += btnCheckModifyBalance_Click;
             // 
             // CampaignManager
             // 
@@ -1561,5 +1573,6 @@
         private Label lblWitherDrawer;
         private Button btnFundDistribute;
         private Button btnConvertWETHToETH;
+        private Button btnCheckModifyBalance;
     }
 }

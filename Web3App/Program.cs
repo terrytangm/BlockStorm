@@ -42,7 +42,7 @@ namespace BlockStorm.Samples
 
         private static string mevBotAddress = "0x6b75d8AF000000e20B7a7DDf000Ba900b4009A80";
         private static string scamTokenAddress = "0xb3003f00435dc660074cc2945e54e1effc8be4db";
-        private static string tokenAddress = "0x9343CC1C28C56dAFc07c6138Ec8839dcb4027235";
+        private static string tokenAddress = "0xb1359BD4Ad177b8E99C18914c5C8b65e3c80c89A";
         static async Task Main(string[] args)
         {
             //GetAccountBalance(myWalletAddress).Wait();
@@ -62,22 +62,22 @@ namespace BlockStorm.Samples
             //await Subscriptions.GetSyncReserve_Observable_Subscription();
             //await GetResult();
             //var account = new Nethereum.Web3.Accounts.Account(pk);
-            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
             //var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
-            //var web3 = new Web3(httpURL);
+            var web3 = new Web3(httpURL);
 
 
 
             //ContractHandler ch = web3.Eth.contrac
 
 
-            //for (int i = 0; i < 20; i++)
-            //{
-            //    HexBigInteger position = new(BigInteger.Zero + i);
-            //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
-            //    Output.WriteLine($"{i}:  {code}");
-            //}
-            //Console.ReadLine();
+            for (int i = 0; i < 50; i++)
+            {
+                HexBigInteger position = new(BigInteger.Zero + i);
+                string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
+                Output.WriteLine($"{i}:  {code}");
+            }
+            Console.ReadLine();
 
             //string tokenA = "0x5f6a0F971e67eb5FfFdb9f1C27572C5EAb6A631C";
             //string tokenB = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";

