@@ -130,7 +130,8 @@ namespace BlockStorm.Infinity.CampaignManager
                         TradeToken
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
+                    GasPrice = 1500000000
                 };
                 var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction);
                 if(swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
@@ -186,7 +187,8 @@ namespace BlockStorm.Infinity.CampaignManager
                         wrappedNativeAddr
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
+                    GasPrice = 1500000000
                 };
                 var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction);
                 if (swapExactTokensForTokensFunctionTxnReceipt.Succeeded())

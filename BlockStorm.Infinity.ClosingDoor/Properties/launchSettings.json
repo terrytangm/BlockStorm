@@ -2,7 +2,7 @@
   "profiles": {
     "BlockStorm.Infinity.ClosingDoor": {
       "commandName": "Project",
-      "commandLineArgs": "0xBa8bC0875C45f7de7895e87ce062e4117e9fDA8B\r\n0xbfda217e050fe6f321faf39cadbb9657f42037846b032761ee06c990d27eeac1\r\njagger(bytes32[])"
+      "commandLineArgs": "0xA527E82cFEE0fB82353Eb3c6E9A52348DAEdC0C4\r\n0x204e0da1d9d71400fcbe52de6acebdbe08685742ad4b3e003353106fa0321771\r\ndoge(bytes32[])"
     }
   }
 }

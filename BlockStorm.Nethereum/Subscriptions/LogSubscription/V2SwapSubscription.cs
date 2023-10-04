@@ -13,12 +13,13 @@ namespace BlockStorm.NethereumModule.Subscriptions.LogSubscription
     public class SwapSubscription
     {
         public event EventHandler<LogReceivedEventArgs>? OnLogReceived;
-        private readonly StreamingWebSocketClient client;
+        public readonly StreamingWebSocketClient client;
         public EthLogsObservableSubscription Subscription { get; }
         public SwapSubscription(string? webSocketURL)
         {
             client = new StreamingWebSocketClient(webSocketURL);
             Subscription = new EthLogsObservableSubscription(client);
+            
         }
 
         public async Task GetSwap_Observable_Subscription(string contractAddress)
@@ -29,6 +30,9 @@ namespace BlockStorm.NethereumModule.Subscriptions.LogSubscription
                 LogReceivedEventArgs e = new(log);
                 OnLogReceived?.Invoke(this, e);
             });
+
+            
+
             // open the web socket connection
             await client.StartAsync();
 

@@ -44,7 +44,13 @@ namespace BlockStorm.Infinity.ClosingDoor
         private static bool isToken0WrappedNative;
         private static readonly BlockchainContext blockchainContext = new();
         private static Web3? web3ForOperator;
+        private static System.Timers.Timer WSCheckTimer = new System.Timers.Timer();
+        private static System.Timers.Timer logProcessingTimer = new System.Timers.Timer();
+        private static SwapSubscription swapSubscription = null;
+        private static Queue<FilterLog> LogProcessingQueue;
 
+        private static bool WSCheckFlag = false;
+        private static bool logProcessFlag = false;
         /// <summary>
         /// 
         /// </summary>
@@ -76,6 +82,7 @@ namespace BlockStorm.Infinity.ClosingDoor
             web3ForOperator = new Web3(account, httpURL);
             operatorAddr = account.Address;
             relayerHandler= web3ForOperator.Eth.GetContractHandler(RelayerAddr);
+            LogProcessingQueue = new Queue<FilterLog>();
             Output.WriteLine($"ChainID: {chainID} 网络: {chainName}");
             Output.WriteLine($"Token: {tokenAddr}, FuncSig: {closeDoorFuncSig}");
             Output.WriteLine($"WrappedNative: {wrappedNativeAddr}");
@@ -84,52 +91,51 @@ namespace BlockStorm.Infinity.ClosingDoor
             
             Output.WriteLineSymbols('*', 120);
 
-            var swapSubscription = new SwapSubscription(webSocketURL);
-            swapSubscription.OnLogReceived += TransferSubscription_OnLogReceivedAsync;
-            await swapSubscription.GetSwap_Observable_Subscription(pairAddr);
-            Output.WriteLine($"正在监控Swap事件......");
+            WSCheckTimer.Elapsed += WSCheckTimer_Elapsed;
+            WSCheckTimer.Interval = 5000;
+            WSCheckTimer.Start();
+
+            logProcessingTimer.Elapsed += LogProcessingTimer_Elapsed;
+            logProcessingTimer.Start();
+            await StartNewSubscription();
         }
 
-        private static void LoadExcludedAddr()
+        private static async void LogProcessingTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            if(excludedAddr.IsNullOrEmpty())
+            if (logProcessFlag) return;
+            logProcessFlag = true;
+            if (LogProcessingQueue.IsNullOrEmpty())
             {
-                excludedAddr = new List<string>
-                {
-                    pairAddr,
-                    tokenAddr,
-                    operatorAddr,
-                    wrappedNativeAddr,
-                    controllerAddr,
-                    RelayerAddr,
-                    uniswapRouterAddr,
-                    universalRouterAddr,
-                    controllerOwnerAddr
-                };
+                logProcessFlag = false;
+                return;
             }
-
-        }
-
-        private static async void TransferSubscription_OnLogReceivedAsync(object? sender, LogReceivedEventArgs e)
-        {
-            if (e == null || e.ReceivedLog == null) return; 
-            FilterLog swapLog = e.ReceivedLog;
+            var swapLog = LogProcessingQueue.Dequeue();
+            if (swapLog == null)
+            {
+                logProcessFlag = false;
+                return;
+            }
             try
             {
-                Output.WriteLine("接收到1个SwapLog");
-                var decodedSwapEvent = Event<SwapEventDTO>.DecodeEvent(swapLog);
                 
+                var decodedSwapEvent = Event<SwapEventDTO>.DecodeEvent(swapLog);
+                Output.WriteLine($"接收到1个SwapLog。To: {decodedSwapEvent.Event.To}");
                 BigInteger wrappedNativeInAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount0In : decodedSwapEvent.Event.Amount1In;
                 BigInteger tokenInAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount1In : decodedSwapEvent.Event.Amount0In;
-                BigInteger wrappedNativeOutAmt = isToken0WrappedNative? decodedSwapEvent.Event.Amount0Out : decodedSwapEvent.Event.Amount1Out;
+                BigInteger wrappedNativeOutAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount0Out : decodedSwapEvent.Event.Amount1Out;
                 BigInteger tokenOutAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount1Out : decodedSwapEvent.Event.Amount0Out;
-                if (wrappedNativeInAmt <= BigInteger.Pow(10,16) || tokenOutAmt == BigInteger.Zero) return;
-                
+                if (wrappedNativeInAmt <= BigInteger.Pow(10, 16) || tokenOutAmt == BigInteger.Zero)
+                {
+                    Output.WriteLine("非买入操作或买入金额太小，略过。");
+                    logProcessFlag = false;
+                    return;
+                }
+
                 //以下判断一下swap事件的to，是不是erc20代币转移路径的终点
                 var txnReceipt = await web3ForOperator.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(swapLog.TransactionHash);
                 var transferEvents = txnReceipt.DecodeAllEvents<NethereumModule.Contracts.UniswapV2ERC20.TransferEventDTO>();
                 var transferEventForToken = transferEvents.Where(t => t.Log.Address.IsTheSameAddress(tokenAddr)).ToList();
-                var relatedAddresses = transferEventForToken.Select(t=>t.Event.To).Union(transferEventForToken.Select(t => t.Event.From)).ToList();
+                var relatedAddresses = transferEventForToken.Select(t => t.Event.To).Union(transferEventForToken.Select(t => t.Event.From)).ToList();
                 var addressesToCheck = relatedAddresses.Where(r => !IsExcluded(r)).ToList();
                 var batchQueryERC20TokenBalancesFunction = new BatchQueryERC20TokenBalancesFunction
                 {
@@ -165,23 +171,82 @@ namespace BlockStorm.Infinity.ClosingDoor
                         TargetWallets = addressesToFlag
                     };
                     var gasEstimate = await relayerHandler.EstimateGasAsync(flagWalletsFunction);
-                    flagWalletsFunction.Gas = gasEstimate.Value / 2 * 3;
-                    Output.WriteLine($"正在提交关门{addressesToFlag}");
+                    flagWalletsFunction.Gas = gasEstimate.Value * 2;
+                    Output.WriteLine($"正在提交关门{string.Join("和", addressesToFlag)}");
                     var flagWalletsFunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(flagWalletsFunction);
                     if (flagWalletsFunctionTxnReceipt.Succeeded())
                     {
                         Output.WriteLine($"新增关门地址:{string.Join("和", addressesToFlag)}，关门金额: {Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
                     }
                 }
+                else
+                {
+                    Output.WriteLine($"相关地址被排除，无需关门");
+                }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Output.WriteLine(ex.Message);
+                Output.WriteLine(ex.StackTrace);
             }
             finally
             {
                 Output.WriteLineSymbols('*', 120);
+                logProcessFlag = false;
             }
+        }
+
+        private static async void WSCheckTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (WSCheckFlag) return;
+            WSCheckFlag = true;
+            if (swapSubscription != null)
+            {
+                //Console.WriteLine(swapSubscription.client.WebSocketState);
+                //Console.WriteLine(swapSubscription.Subscription.SubscriptionState);
+                //Console.WriteLine(DateTime.Now.ToString());
+                //Console.WriteLine("*****************************************");
+                if (swapSubscription.client.WebSocketState == System.Net.WebSockets.WebSocketState.Aborted)
+                {
+                    WSCheckFlag = false;
+                    await StartNewSubscription();
+                }
+            }
+            WSCheckFlag = false;
+        }
+
+        private static async Task StartNewSubscription()
+        {
+            swapSubscription = new SwapSubscription(webSocketURL);
+            swapSubscription.OnLogReceived += TransferSubscription_OnLogReceivedAsync;
+            await swapSubscription.GetSwap_Observable_Subscription(pairAddr);
+        }
+
+        private static void LoadExcludedAddr()
+        {
+            if(excludedAddr.IsNullOrEmpty())
+            {
+                excludedAddr = new List<string>
+                {
+                    pairAddr,
+                    tokenAddr,
+                    operatorAddr,
+                    wrappedNativeAddr,
+                    controllerAddr,
+                    RelayerAddr,
+                    uniswapRouterAddr,
+                    universalRouterAddr,
+                    controllerOwnerAddr
+                };
+            }
+
+        }
+
+        private static async void TransferSubscription_OnLogReceivedAsync(object? sender, LogReceivedEventArgs e)
+        {
+            if (e == null || e.ReceivedLog == null) return; 
+            FilterLog swapLog = e.ReceivedLog;
+            LogProcessingQueue.Enqueue(swapLog);
         }
 
         private static bool IsExcluded(string to)

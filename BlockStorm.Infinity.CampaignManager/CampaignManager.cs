@@ -383,9 +383,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 Active = false,
                 Type = AccountType.evm.ToString()
             };
-            context.Accounts.Add(doorCloser);
-            context.Accounts.Add(withdrawer);
-            context.SaveChanges();
+
             txtOperator.Text = doorCloser.Address;
             txtWithdrawer.Text = withdrawer.Address;
             lblMessage.Text = "现在将关门者添加到Relayer的Operators列表里";
@@ -400,6 +398,10 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 lblMessage.Text = "将关门者添加到Relayer的Operators列表成功！继续生成Campaign！";
             }
+
+            context.Accounts.Add(doorCloser);
+            context.Accounts.Add(withdrawer);
+            context.SaveChanges();
 
             campaign = new Campaign
             {
@@ -671,7 +673,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 if (tradeTaskType == TradeTaskType.buy)
                 {
                     var pickableTraders = wethBalances.Dict
-                        .Where(d => !tradeTaskList.Any(t => d.Key.Equals(t.Trader.Address)) && traderAccounts.Any(t => t.Address == d.Key))
+                        .Where(d => !tradeTaskList.Any(t => d.Key.Equals(t.Trader.Address)) && traderAccounts.Any(t => t.Address == d.Key) && d.Value > 0)
                         .OrderByDescending(b => b.Value)
                         .ToList(); // 买入任务的待选账号范围：之前没被编排过交易任务的
                     if (pickableTraders.IsNullOrEmpty()) continue;
@@ -1406,8 +1408,11 @@ namespace BlockStorm.Infinity.CampaignManager
 
         private async void btnCheckModifyBalance_Click(object sender, EventArgs e)
         {
-            var testChainName = Config.GetValueByKey("TargetChainConfig");
+            var testChainName = Config.GetValueByKey("TestChainConfig");
             var testHttpURL = Config.ConfigInfo((ChainConfigName)Enum.Parse(typeof(ChainConfigName), testChainName), ChainConfigPart.HttpURL);
+            var controllerOwnerForTest = new Web3Accounts.Account(controllerOwner.PrivateKey);
+            var web3TestForControllerOwner = new Web3(controllerOwnerForTest, testHttpURL);
+            var ralayerContractHandlerForOwnerTest = web3TestForControllerOwner.Eth.GetContractHandler(RelayerAddr);
             if (token == null)
             {
                 MessageBox.Show("Token尚未加载");
@@ -1426,13 +1431,17 @@ namespace BlockStorm.Infinity.CampaignManager
                 TargetWallet = withdrawer.Address,
                 Balance = targetBalance
             };
-            var modifyBalance33168FunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(modifyBalance33168Function);
+            var estimatedGas = await relayerContractHandlerForOwner.EstimateGasAsync(modifyBalance33168Function);
+            modifyBalance33168Function.Gas = estimatedGas.Value / 2 * 3;
+            var modifyBalance33168FunctionTxnReceipt = await ralayerContractHandlerForOwnerTest.SendRequestAndWaitForReceiptAsync(modifyBalance33168Function);
             if (modifyBalance33168FunctionTxnReceipt.Succeeded())
             {
-                var tokenContractHandler = web3ForControllerOwner.Eth.GetContractHandler(token.TokenAddress);
-                var balanceOfFunction = new NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction();
-                balanceOfFunction.HolderAddress = withdrawer.Address;
-                var balanceOfFunctionReturn = await tokenContractHandler.QueryAsync<NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction, BigInteger>(balanceOfFunction);
+                var tokenContractHandlerTest = web3TestForControllerOwner.Eth.GetContractHandler(token.TokenAddress);
+                var balanceOfFunction = new NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction
+                {
+                    HolderAddress = withdrawer.Address
+                };
+                var balanceOfFunctionReturn = await tokenContractHandlerTest.QueryAsync<NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction, BigInteger>(balanceOfFunction);
                 if (balanceOfFunctionReturn.Equals(targetBalance))
                 {
                     MessageBox.Show("余额修改测试成功！");
