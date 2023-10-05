@@ -203,47 +203,67 @@ namespace BlockStorm.Infinity.CampaignManager
             }
             tradeTaskList[currentTaskIndex].TradeInterval--;
             UpdateTaskGridViewInfo();
-            if (tradeTaskList[currentTaskIndex].TradeInterval <= 0)
+            if (tradeTaskList[currentTaskIndex].TradeInterval <= 0 && tradeTaskList[currentTaskIndex].TradeInterval >= -3)
             {
-                (bool success, BigInteger amount) = await tradeTaskList[currentTaskIndex].ExcuteTaskAsync();
-                if (success)
+                var cancelTokenSource = new CancellationTokenSource();
+                cancelTokenSource.CancelAfter(60 * 1000);
+                try
                 {
-                    var campaignAccount = context.CampaignAccounts.Where(c => c.AccountId == tradeTaskList[currentTaskIndex].Trader.Id && c.CampaignId == campaign.Id).FirstOrDefault();
-                    if (tradeTaskList[currentTaskIndex].TaskType == TradeTaskType.buy)
+                    (bool success, BigInteger amount) = await tradeTaskList[currentTaskIndex].ExcuteTaskAsync(cancelTokenSource.Token);
+                    if (success)
                     {
+                        var campaignAccount = context.CampaignAccounts.Where(c => c.AccountId == tradeTaskList[currentTaskIndex].Trader.Id && c.CampaignId == campaign.Id).FirstOrDefault();
+                        if (tradeTaskList[currentTaskIndex].TaskType == TradeTaskType.buy)
+                        {
 
-                        campaignAccount.BoughtTimes += 1;
-                        BigInteger boughtAmount = campaignAccount.BoughtVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.BoughtVolumn);
-                        boughtAmount += amount;
-                        campaignAccount.BoughtVolumn = boughtAmount.ToString();
-                        campaignAccount.TradeTimes += 1;
-                        BigInteger tradeAmount = campaignAccount.TradeVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.TradeVolumn);
-                        tradeAmount += amount;
-                        campaignAccount.TradeVolumn = tradeAmount.ToString();
+                            campaignAccount.BoughtTimes += 1;
+                            BigInteger boughtAmount = campaignAccount.BoughtVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.BoughtVolumn);
+                            boughtAmount += amount;
+                            campaignAccount.BoughtVolumn = boughtAmount.ToString();
+                            campaignAccount.TradeTimes += 1;
+                            BigInteger tradeAmount = campaignAccount.TradeVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.TradeVolumn);
+                            tradeAmount += amount;
+                            campaignAccount.TradeVolumn = tradeAmount.ToString();
+                        }
+                        else
+                        {
+                            campaignAccount.SoldTimes += 1;
+                            BigInteger soldAmount = campaignAccount.SoldVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.SoldVolumn);
+                            soldAmount += amount;
+                            campaignAccount.SoldVolumn = soldAmount.ToString();
+                            campaignAccount.TradeTimes += 1;
+                            BigInteger tradeAmount = campaignAccount.TradeVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.TradeVolumn);
+                            tradeAmount += amount;
+                            campaignAccount.TradeVolumn = tradeAmount.ToString();
+                        }
+                        context.CampaignAccounts.Update(campaignAccount);
+                        context.SaveChanges();
+                        UpdateGridViewRow(campaignAccount);
+                        await RefreshTradersBalances();
+                        await UpdateWETHBalance(pairAddr);
+                        await UpdatePairReserves();
+                        currentTaskIndex++;
+                        RefreshTradeTaskList();
                     }
-                    else
-                    {
-                        campaignAccount.SoldTimes += 1;
-                        BigInteger soldAmount = campaignAccount.SoldVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.SoldVolumn);
-                        soldAmount += amount;
-                        campaignAccount.SoldVolumn = soldAmount.ToString();
-                        campaignAccount.TradeTimes += 1;
-                        BigInteger tradeAmount = campaignAccount.TradeVolumn.IsNullOrEmpty() ? 0 : BigInteger.Parse(campaignAccount.TradeVolumn);
-                        tradeAmount += amount;
-                        campaignAccount.TradeVolumn = tradeAmount.ToString();
-                    }
-                    context.CampaignAccounts.Update(campaignAccount);
-                    context.SaveChanges();
-                    UpdateGridViewRow(campaignAccount);
-                    await RefreshTradersBalances();
-                    await UpdateWETHBalance(pairAddr);
-                    await UpdatePairReserves();
-                    currentTaskIndex++;
-                    RefreshTradeTaskList();
                 }
+                catch (OperationCanceledException ex) when (ex.CancellationToken == cancelTokenSource.Token)
+                {
+
+                }
+                finally
+                {
+                    cancelTokenSource.Dispose();
+                }
+            }
+            else if (tradeTaskList[currentTaskIndex].TradeInterval < -3)
+            {
+                UpdateGridViewRowSkipped(tradeTaskList[currentTaskIndex].Trader.Id);
+                currentTaskIndex++;
+                RefreshTradeTaskList();
             }
             lockFlag = false;
         }
+
 
 
         private void WethBalances_OnBalanceChanged(object? sender, ValueChangedEventArgs<string, decimal> e)
@@ -1253,9 +1273,13 @@ namespace BlockStorm.Infinity.CampaignManager
             for (int i = 0; i < tradeTaskList.Count; i++)
             {
                 cblTradeTaskList.Items.Add(tradeTaskList[i]);
-                if (tradeTaskList[i].Executed && tradeTaskList[i].Success.Value)
+                if (i <= currentTaskIndex)
                 {
                     cblTradeTaskList.SetSelected(i, true);
+                }
+                if (tradeTaskList[i].Executed && tradeTaskList[i].Success.Value)
+                {
+
                     cblTradeTaskList.SetItemChecked(i, true);
                 }
             }
@@ -1277,7 +1301,15 @@ namespace BlockStorm.Infinity.CampaignManager
             dgvTraderList.Invalidate();
             var row = dgvTraderList.Rows.Cast<DataGridViewRow>().Where(r => r.Cells[dgColumnIndex["ID"]].Value.Equals(campaignAccount.AccountId)).FirstOrDefault();
             if (row == null) return;
-            string message = tradeTaskList[currentTaskIndex].ToString() + " 执行成功";
+            string message = tradeTaskList[currentTaskIndex].ToString();
+            row.Cells[dgColumnIndex["交易任务进度"]].Value = message;
+        }
+
+        private void UpdateGridViewRowSkipped(long id)
+        {
+            var row = dgvTraderList.Rows.Cast<DataGridViewRow>().Where(r => r.Cells[dgColumnIndex["ID"]].Value.Equals(id)).FirstOrDefault();
+            if (row == null) return;
+            string message = tradeTaskList[currentTaskIndex].ToString() + "任务略过";
             row.Cells[dgColumnIndex["交易任务进度"]].Value = message;
         }
 
@@ -1295,7 +1327,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 case 0:
                     message.Append(" 正在执行"); break;
                 case < 0:
-                    message.Append(" 执行失败，正在重试。"); break;
+                    message.Append($" 执行失败，正在重试第{Math.Abs(tradeTaskList[currentTaskIndex].TradeInterval)}次。"); break;
             }
             row.Cells[dgColumnIndex["交易任务进度"]].Value = message.ToString();
         }
@@ -1355,7 +1387,7 @@ namespace BlockStorm.Infinity.CampaignManager
             var swapExactTokensForTokensFunction = new SwapExactTokensForTokensFunction
             {
                 AmountIn = balanceToModify,
-                AmountOutMin = amountOut * 997 / 1000,
+                AmountOutMin = amountOut * 998 / 1000,
                 Path = new List<string>
                 {
                     tokenAddr,

@@ -91,7 +91,7 @@ namespace BlockStorm.Infinity.CampaignManager
             return str.ToString();
         }
 
-        internal async Task<(bool, BigInteger)> ExcuteTaskAsync()
+        internal async Task<(bool, BigInteger)> ExcuteTaskAsync(CancellationToken cancelToken)
         {
             var account = new Nethereum.Web3.Accounts.Account(Trader.PrivateKey);
             var web3ForTrader = new Web3(account, httpURL);
@@ -107,7 +107,9 @@ namespace BlockStorm.Infinity.CampaignManager
                     Spender = routerAddr,
                     Value = TradeAmount.Value
                 };
-                var approveFunctionTxnReceipt = await wrappedNativeContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForWrappedNative);
+                var approveFunctionTxnReceipt = await wrappedNativeContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForWrappedNative, cancelToken);
+                
+
                 if (approveFunctionTxnReceipt.Failed())
                 {
                     Success = false;
@@ -123,17 +125,16 @@ namespace BlockStorm.Infinity.CampaignManager
                 var swapExactTokensForTokensFunction = new SwapExactTokensForTokensFunction
                 {
                     AmountIn = TradeAmount.Value,
-                    AmountOutMin = amountOut * 997 / 1000,
+                    AmountOutMin = amountOut * 998 / 1000,
                     Path = new List<string>
                     {
                         wrappedNativeAddr,
                         TradeToken
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
-                    GasPrice = 1500000000
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
                 };
-                var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction);
+                var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction, cancelToken);
                 if(swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
                 {
                     Executed = true;
@@ -163,7 +164,7 @@ namespace BlockStorm.Infinity.CampaignManager
                     Spender = routerAddr,
                     Value = amountIn,
                 };
-                var approveFunctionTxnReceipt = await tokenContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForToken);
+                var approveFunctionTxnReceipt = await tokenContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForToken, cancelToken);
                 if (approveFunctionTxnReceipt.Failed())
                 {
                     Success = false;
@@ -180,17 +181,16 @@ namespace BlockStorm.Infinity.CampaignManager
                 var swapExactTokensForTokensFunction = new SwapExactTokensForTokensFunction
                 {
                     AmountIn = amountIn,
-                    AmountOutMin = amountOut * 997 / 1000,
+                    AmountOutMin = amountOut * 998 / 1000,
                     Path = new List<string>
                     {
                         TradeToken,
                         wrappedNativeAddr
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
-                    GasPrice = 1500000000
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
                 };
-                var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction);
+                var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction, cancelToken);
                 if (swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
                 {
                     Executed = true;
