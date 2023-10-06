@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using NBitcoin.Secp256k1;
+using Nethereum.ABI.FunctionEncoding;
 using Nethereum.Contracts;
 using Nethereum.Contracts.ContractHandlers;
 using Nethereum.Contracts.Standards.ERC20.ContractDefinition;
@@ -206,7 +207,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (tradeTaskList[currentTaskIndex].TradeInterval <= 0 && tradeTaskList[currentTaskIndex].TradeInterval >= -3)
             {
                 var cancelTokenSource = new CancellationTokenSource();
-                cancelTokenSource.CancelAfter(60 * 1000);
+                cancelTokenSource.CancelAfter(70 * 1000);
                 try
                 {
                     (bool success, BigInteger amount) = await tradeTaskList[currentTaskIndex].ExcuteTaskAsync(cancelTokenSource.Token);
@@ -249,6 +250,17 @@ namespace BlockStorm.Infinity.CampaignManager
                 catch (OperationCanceledException ex) when (ex.CancellationToken == cancelTokenSource.Token)
                 {
 
+                }
+                catch (RpcClientTimeoutException ex)
+                {
+
+                }
+                catch (RpcClientUnknownException ex)
+                {
+
+                }
+                catch (SmartContractRevertException ex)
+                {
                 }
                 finally
                 {
