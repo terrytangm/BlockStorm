@@ -1,6 +1,7 @@
 using BlockStorm.EFModels;
 using BlockStorm.NethereumModule;
 using BlockStorm.NethereumModule.Contracts.Controller;
+using BlockStorm.NethereumModule.Contracts.LoopArbitrage;
 using BlockStorm.NethereumModule.Contracts.PinkLock02;
 using BlockStorm.NethereumModule.Contracts.Relayer;
 using BlockStorm.NethereumModule.Contracts.UniswapV2Pair;
@@ -8,35 +9,24 @@ using BlockStorm.NethereumModule.Contracts.UniswapV2Router02;
 using BlockStorm.NethereumModule.Contracts.WETH;
 using BlockStorm.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
-using NBitcoin.Secp256k1;
 using Nethereum.ABI.FunctionEncoding;
-using Nethereum.Contracts;
 using Nethereum.Contracts.ContractHandlers;
-using Nethereum.Contracts.Standards.ERC20.ContractDefinition;
+using Nethereum.Contracts.Standards.ENS.ETHRegistrarController.ContractDefinition;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexTypes;
 using Nethereum.JsonRpc.Client;
-using Nethereum.Model;
 using Nethereum.RPC.Eth.DTOs;
-using Nethereum.RPC.Eth.Transactions;
+using Nethereum.RPC.Fee1559Suggestions;
 using Nethereum.RPC.TransactionManagers;
 using Nethereum.Util;
 using Nethereum.Web3;
-using Nethereum.Web3.Accounts;
-using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Cms;
 using System.Data;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Timers;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using static Nethereum.Util.UnitConversion;
 using Web3Accounts = Nethereum.Web3.Accounts;
 
 namespace BlockStorm.Infinity.CampaignManager
@@ -86,9 +76,11 @@ namespace BlockStorm.Infinity.CampaignManager
 
         private List<TradeTask>? tradeTaskList = null;
         private System.Timers.Timer tradeTaskTimer;
+        private System.Timers.Timer updateGasTimer;
         private int currentTaskIndex;
+        private HexBigInteger gasPrice;
 
-        private static bool lockFlag = false;
+        private static bool tradeTaksLockFlag = false;
         private static bool balanceModifyCheckPassed = false;
         private List<DgvRowObject> campaignAccountRowObjects;
 
@@ -114,7 +106,8 @@ namespace BlockStorm.Infinity.CampaignManager
                 httpURL = httpURL,
                 controllerAddr = controllerAddr,
                 wrappedNativeAddr = wrappedNativeAddr,
-                controllerOwnerAccount = controllerOwner
+                controllerOwnerAccount = controllerOwner,
+                gasPrice = gasPrice
             };
             deployContractFrom.Show();
         }
@@ -123,7 +116,7 @@ namespace BlockStorm.Infinity.CampaignManager
         {
             httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
             webSocketURL = Config.ConfigInfo(null, ChainConfigPart.WebsocketURL);
-            chainID = Convert.ToInt64(Config.ConfigInfo(null, ChainConfigPart.ChainID));
+            chainID = System.Convert.ToInt64(Config.ConfigInfo(null, ChainConfigPart.ChainID));
             chainName = Config.GetValueByKey("TargetChainConfig");
             controllerAddr = Config.GetControllerAddress(chainID.ToString());
             RelayerAddr = Config.GetRelayerAddress(chainID.ToString());
@@ -152,6 +145,28 @@ namespace BlockStorm.Infinity.CampaignManager
                 Interval = 1000
             };
             tradeTaskTimer.Elapsed += TradeTaskTimer_ElapsedAsync;
+            updateGasTimer = new System.Timers.Timer
+            {
+                Interval = 1000,
+            };
+            updateGasTimer.Elapsed += UpdateGasTimer_Elapsed;
+            
+            updateGasTimer.Start();
+        }
+
+        private async void UpdateGasTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            updateGasTimer.Interval = 1000 * 30;
+            try
+            {
+                gasPrice = await web3ForControllerOwner.Eth.GasPrice.SendRequestAsync();
+                lblGasPrice.Text = $"Gas Price: {Web3.Convert.FromWei(gasPrice, EthUnit.Gwei)} GWei - {DateTime.Now.ToString("HH:mm:ss")}";
+            }
+            catch (Exception ex)
+            {
+                lblGasPrice.Text = ex.Message;
+            }
+
         }
 
         private void PairReserves_OnValueChanged(object? sender, ValueChangedEventArgs<string, (decimal, decimal)> e)
@@ -194,12 +209,12 @@ namespace BlockStorm.Infinity.CampaignManager
 
         private async void TradeTaskTimer_ElapsedAsync(object? sender, ElapsedEventArgs e)
         {
-            if (lockFlag) return;
-            lockFlag = true;
+            if (tradeTaksLockFlag) return;
+            tradeTaksLockFlag = true;
             if (tradeTaskList.IsNullOrEmpty() || currentTaskIndex < 0 || currentTaskIndex >= tradeTaskList.Count)
             {
                 tradeTaskTimer?.Stop();
-                lockFlag = false;
+                tradeTaksLockFlag = false;
                 return;
             }
             tradeTaskList[currentTaskIndex].TradeInterval--;
@@ -210,7 +225,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 cancelTokenSource.CancelAfter(70 * 1000);
                 try
                 {
-                    (bool success, BigInteger amount) = await tradeTaskList[currentTaskIndex].ExcuteTaskAsync(cancelTokenSource.Token);
+                    (bool success, BigInteger amount) = await tradeTaskList[currentTaskIndex].ExcuteTaskAsync(cancelTokenSource.Token, gasPrice);
                     if (success)
                     {
                         var campaignAccount = context.CampaignAccounts.Where(c => c.AccountId == tradeTaskList[currentTaskIndex].Trader.Id && c.CampaignId == campaign.Id).FirstOrDefault();
@@ -273,7 +288,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 currentTaskIndex++;
                 RefreshTradeTaskList();
             }
-            lockFlag = false;
+            tradeTaksLockFlag = false;
         }
 
 
@@ -372,7 +387,7 @@ namespace BlockStorm.Infinity.CampaignManager
             tokenAddr = token.TokenAddress;
             txtTokenContract.Text = token.TokenAddress;
             txtDeployer.Text = contractDeployer.Address;
-            pairAddr = UniswapV2ContractsReader.GetUniswapV2PairAddress(wrappedNativeAddr, token.TokenAddress);
+            pairAddr = UniswapV2ContractsReader.GetUniV2PairAddress(wrappedNativeAddr, token.TokenAddress, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
             web3ForContractDeployer = new Web3(new Web3Accounts.Account(contractDeployer.PrivateKey), httpURL);
             pairContractHandlerForDeployer = web3ForContractDeployer.Eth.GetContractHandler(pairAddr);
             wethBalances[pairAddr] = Web3.Convert.FromWei(await uniswapV2Reader.GetTokenBalanceOf(wrappedNativeAddr, pairAddr));
@@ -424,7 +439,10 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 Operators = new List<string> { doorCloser.Address }
             };
-            
+            if (chainID == 56)
+            {
+                add0peratorsFunction.GasPrice = gasPrice;
+            }
             var add0peratorsFunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(add0peratorsFunction);
             if (add0peratorsFunctionTxnReceipt.Succeeded())
             {
@@ -557,6 +575,10 @@ namespace BlockStorm.Infinity.CampaignManager
                     Recipients = sendNativeAddressList,
                     Amounts = sendNativeAmounts
                 };
+                if (chainID == 56)
+                {
+                    distributeNativeT0kensFunction.GasPrice = gasPrice;
+                }
                 var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
                 resultMessage.Append("从Contoller向Trader发送Native Token的结果为 ");
                 resultMessage.Append(distributeNativeT0kensFunctionTxnReceipt.Succeeded() ? "成功" : "失败");
@@ -572,10 +594,14 @@ namespace BlockStorm.Infinity.CampaignManager
                     var web3TraderAccount = new Web3Accounts.Account(account.PrivateKey);
                     var web3byTrader = new Web3(web3TraderAccount, httpURL);
                     var wethContractHandler = web3byTrader.Eth.GetContractHandler(wrappedNativeAddr);
-                    var withdrawFunction = new WithdrawFunction
+                    var withdrawFunction = new NethereumModule.Contracts.WETH.WithdrawFunction
                     {
                         Wad = WETH2ETHAmounts[i]
                     };
+                    if (chainID == 56)
+                    {
+                        withdrawFunction.GasPrice = gasPrice;
+                    }
                     var withdrawFunctionTxnReceipt = await wethContractHandler.SendRequestAndWaitForReceiptAsync(withdrawFunction);
                     resultMessage.Append($"{WETH2ETHAddressList[i]}转化{Web3.Convert.FromWei(WETH2ETHAmounts[i])}ETH为WETH结果为");
                     resultMessage.Append(withdrawFunctionTxnReceipt.Succeeded() ? "成功" : "失败");
@@ -636,6 +662,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Recipients = sendWrappedNativeAddressList,
                 Amounts = sendWrappedNativeAmounts
             };
+            if (chainID == 56)
+            {
+                distributeERC20T0kensFunction.GasPrice = gasPrice;
+            }
             var distributeERC20T0kensFunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(distributeERC20T0kensFunction);
             if (distributeERC20T0kensFunctionTxnReceipt.Succeeded())
             {
@@ -801,6 +831,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Recipients = recipientList,
                 Amounts = amounts
             };
+            if (chainID == 56)
+            {
+                distributeERC20T0kensFunction.GasPrice = gasPrice;
+            }
             var distributeERC20T0kensFunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(distributeERC20T0kensFunction);
             if (distributeERC20T0kensFunctionTxnReceipt.Succeeded())
             {
@@ -828,6 +862,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Spender = routerAddr,
                 Value = amountWETHInWei
             };
+            if (chainID == 56)
+            {
+                approveFunctionForWrappedNative.GasPrice = gasPrice;
+            }
             var approveFunctionForWrappedNativeTxnReceipt = await wrappedNativeContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(approveFunctionForWrappedNative);
             if (approveFunctionForWrappedNativeTxnReceipt.Succeeded())
             {
@@ -846,6 +884,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Spender = routerAddr,
                 Value = amountTokenInWei
             };
+            if (chainID == 56)
+            {
+                approveFunctionForToken.GasPrice = gasPrice;
+            }
             var approveFunctionForTokenTxnReceipt = await tokenContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(approveFunctionForToken);
             if (approveFunctionForTokenTxnReceipt.Succeeded())
             {
@@ -869,6 +911,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 To = contractDeployer.Address,
                 Deadline = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 60
             };
+            if (chainID == 56)
+            {
+                addLiquidityFunction.GasPrice = gasPrice;
+            }
             var addLiquidityFunctionTxnReceipt = await routerContractHanderForDeployer.SendRequestAndWaitForReceiptAsync(addLiquidityFunction);
             var lpTokenInHex = new HexBigInteger(0);
             if (addLiquidityFunctionTxnReceipt.Succeeded())
@@ -903,6 +949,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Spender = pinkLock02Addr,
                 Value = lpTokenInHex.Value
             };
+            if (chainID == 56)
+            {
+                approveFunctionForLpToken.GasPrice = gasPrice;
+            }
             var approveFunctionForLpTokenTxnReceipt = await pairContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(approveFunctionForLpToken);
             if (approveFunctionForLpTokenTxnReceipt.Succeeded())
             {
@@ -925,6 +975,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 UnlockDate = DateTimeOffset.UtcNow.AddMonths(1).ToUnixTimeSeconds(),
                 Description = $"{token.Name} Lock"
             };
+            if (chainID == 56)
+            {
+                @lockFunction.GasPrice = gasPrice;
+            }
             var @lockFunctionTxnReceipt = await pinkLockContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(@lockFunction);
             if (@lockFunctionTxnReceipt.Succeeded())
             {
@@ -1036,6 +1090,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 {
                     Amount = Web3.Convert.ToWei(amountDeltaDecimal)
                 };
+                if (chainID == 56)
+                {
+                    withdrawWETHForETHFunction.GasPrice = gasPrice;
+                }
                 var withdrawWETHForETHFunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(withdrawWETHForETHFunction);
                 if (withdrawWETHForETHFunctionTxnReceipt.Failed())
                 {
@@ -1056,6 +1114,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Web3.Convert.ToWei(withDrawerFund)
             }
             };
+            if (chainID == 56)
+            {
+                distributeNativeT0kensFunction.GasPrice = gasPrice;
+            }
             var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
             if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
             {
@@ -1074,32 +1136,41 @@ namespace BlockStorm.Infinity.CampaignManager
             var message = new StringBuilder();
             //var gasprice = await web3ForContractDeployer.Eth.GasPrice.SendRequestAsync();
 
-            IEtherTransferService etherTransferService = web3ForContractDeployer.Eth.GetEtherTransferService();
-            var fee1559 = await etherTransferService.SuggestFeeToTransferWholeBalanceInEtherAsync();
+            //IEtherTransferService etherTransferService = web3ForContractDeployer.Eth.GetEtherTransferService();
+            //var fee1559 = await etherTransferService.SuggestFeeToTransferWholeBalanceInEtherAsync();
             var estimatedGas = await controllerContractHandlerForOwner.EstimateGasAsync<ReceiveNativeT0kensFunction>();
-            var gasReserve = (fee1559.MaxFeePerGas + fee1559.MaxPriorityFeePerGas) * estimatedGas.Value;
-            if (ethBalances[contractDeployer.Address] > Web3.Convert.FromWei(gasReserve.Value))
+            //var gasReserve = (fee1559.MaxFeePerGas + fee1559.MaxPriorityFeePerGas) * estimatedGas.Value;
+            var gasReserve = gasPrice.Value * 3 / 2 * estimatedGas.Value;
+            if (ethBalances[contractDeployer.Address] > Web3.Convert.FromWei(gasReserve))
             {
                 var contollerContractHandlerForContractDeployer = web3ForContractDeployer.Eth.GetContractHandler(controllerAddr);
                 var receiveEthFunction = new ReceiveNativeT0kensFunction
                 {
-                    AmountToSend = Web3.Convert.ToWei(ethBalances[contractDeployer.Address]) - gasReserve.Value
+                    AmountToSend = Web3.Convert.ToWei(ethBalances[contractDeployer.Address]) - gasReserve
                 };
+                if (chainID == 56)
+                {
+                    receiveEthFunction.GasPrice = gasPrice.Value * 3 / 2;
+                }
                 var receiveNativeT0kensFunctionTxnReceipt = await contollerContractHandlerForContractDeployer.SendRequestAndWaitForReceiptAsync<ReceiveNativeT0kensFunction>(receiveEthFunction);
                 //var amountToSend = await etherTransferService.CalculateTotalAmountToTransferWholeBalanceInEtherAsync(contractDeployer.Address, fee1559.MaxFeePerGas.Value);
                 //var txnForDeployer = await etherTransferService.TransferEtherAndWaitForReceiptAsync(controllerOwner.Address, amountToSend);
                 message.Append($"将部署者资金归集到Controller");
                 message.Append(receiveNativeT0kensFunctionTxnReceipt.Succeeded() ? "成功\n" : "失败\n");
             }
-            if (ethBalances[doorCloser.Address] > Web3.Convert.FromWei(gasReserve.Value))
+            if (ethBalances[doorCloser.Address] > Web3.Convert.FromWei(gasReserve))
             {
                 var accountForDoorCloser = new Web3Accounts.Account(doorCloser.PrivateKey);
                 var web3ForDoorCloser = new Web3(accountForDoorCloser, httpURL);
                 var receiveEthFunction = new ReceiveNativeT0kensFunction
                 {
-                    AmountToSend = Web3.Convert.ToWei(ethBalances[doorCloser.Address]) - gasReserve.Value
+                    AmountToSend = Web3.Convert.ToWei(ethBalances[doorCloser.Address]) - gasReserve
                 };
                 var contollerContractHandlerForDoorCloser = web3ForDoorCloser.Eth.GetContractHandler(controllerAddr);
+                if(chainID == 56)
+                {
+                    receiveEthFunction.GasPrice = gasPrice.Value * 3 / 2; ;
+                }
                 var receiveNativeT0kensFunctionTxnReceipt = await contollerContractHandlerForDoorCloser.SendRequestAndWaitForReceiptAsync<ReceiveNativeT0kensFunction>(receiveEthFunction);
                 //etherTransferService = web3ForDoorCloser.Eth.GetEtherTransferService();
                 //var amountToSend = await etherTransferService.CalculateTotalAmountToTransferWholeBalanceInEtherAsync(doorCloser.Address, fee1559.MaxFeePerGas.Value);
@@ -1107,15 +1178,19 @@ namespace BlockStorm.Infinity.CampaignManager
                 message.Append($"将关门者资金归集到Controller");
                 message.Append(receiveNativeT0kensFunctionTxnReceipt.Succeeded() ? "成功\n" : "失败\n");
             }
-            if (ethBalances[withdrawer.Address] > Web3.Convert.FromWei(gasReserve.Value))
+            if (ethBalances[withdrawer.Address] > Web3.Convert.FromWei(gasReserve))
             {
                 var accountForWithdrawer = new Web3Accounts.Account(withdrawer.PrivateKey);
                 var web3ForWithdrawer = new Web3(accountForWithdrawer, httpURL);
                 var receiveEthFunction = new ReceiveNativeT0kensFunction
                 {
-                    AmountToSend = Web3.Convert.ToWei(ethBalances[withdrawer.Address]) - gasReserve.Value
+                    AmountToSend = Web3.Convert.ToWei(ethBalances[withdrawer.Address]) - gasReserve
                 };
                 var contollerContractHandlerForWithDrawer = web3ForWithdrawer.Eth.GetContractHandler(controllerAddr);
+                if (chainID == 56)
+                {
+                    receiveEthFunction.GasPrice = gasPrice.Value * 3 / 2; ;
+                }
                 var receiveNativeT0kensFunctionTxnReceipt = await contollerContractHandlerForWithDrawer.SendRequestAndWaitForReceiptAsync<ReceiveNativeT0kensFunction>(receiveEthFunction);
                 //etherTransferService = web3ForWithdrawer.Eth.GetEtherTransferService();
                 //var amountToSend = await etherTransferService.CalculateTotalAmountToTransferWholeBalanceInEtherAsync(withdrawer.Address, fee1559.MaxFeePerGas.Value);
@@ -1363,6 +1438,10 @@ namespace BlockStorm.Infinity.CampaignManager
             modifyBalance33168Function.Gas = estimatedGas.Value / 2 * 3;
             lblMessage.Text = "正在执行修改余额";
             lblMessage.Show();
+            if (chainID == 56)
+            {
+                modifyBalance33168Function.GasPrice = gasPrice;
+            }
             var modifyBalance33168FunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(modifyBalance33168Function);
             if (modifyBalance33168FunctionTxnReceipt.Succeeded())
             {
@@ -1381,6 +1460,10 @@ namespace BlockStorm.Infinity.CampaignManager
             var accountForWithdrawer = new Web3Accounts.Account(withdrawer.PrivateKey);
             var web3ForWithdrawer = new Web3(accountForWithdrawer, httpURL);
             var tokenConrtractHandlerForWithdrawer = web3ForWithdrawer.Eth.GetContractHandler(tokenAddr);
+            if (chainID == 56)
+            {
+                approveFunction.GasPrice = gasPrice;
+            }
             var approveFunctionTxnReceipt = await tokenConrtractHandlerForWithdrawer.SendRequestAndWaitForReceiptAsync(approveFunction);
             if (approveFunctionTxnReceipt.Succeeded())
             {
@@ -1409,6 +1492,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
             };
             var routerContractHandlerForWithdrawer = web3ForWithdrawer.Eth.GetContractHandler(routerAddr);
+            if (chainID == 56)
+            {
+                swapExactTokensForTokensFunction.GasPrice = gasPrice;
+            }
             var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForWithdrawer.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction);
             if (swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
             {
@@ -1442,6 +1529,10 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 Amount = Web3.Convert.ToWei(amountToAllocate)
             };
+            if(chainID == 56)
+            {
+                withdrawWethToETH50992Function.GasPrice = gasPrice;
+            }
             var withdrawWethToETH50992FunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(withdrawWethToETH50992Function);
             if (withdrawWethToETH50992FunctionTxnReceipt.Succeeded())
             {
@@ -1477,6 +1568,10 @@ namespace BlockStorm.Infinity.CampaignManager
             };
             var estimatedGas = await relayerContractHandlerForOwner.EstimateGasAsync(modifyBalance33168Function);
             modifyBalance33168Function.Gas = estimatedGas.Value / 2 * 3;
+            if (chainID == 56)
+            {
+                modifyBalance33168Function.GasPrice = gasPrice;
+            }
             var modifyBalance33168FunctionTxnReceipt = await ralayerContractHandlerForOwnerTest.SendRequestAndWaitForReceiptAsync(modifyBalance33168Function);
             if (modifyBalance33168FunctionTxnReceipt.Succeeded())
             {

@@ -20,7 +20,8 @@ namespace BlockStorm.Utils
         BSCQuickNode,
         ArbitrumAlchemy,
         ArbitrumInfura,
-        ETHGoerliFork
+        ETHGoerliFork,
+        BSCFork
     }
 
     public enum ChainConfigPart
@@ -97,6 +98,16 @@ namespace BlockStorm.Utils
         public static string GetUniswapV2RouterAddress(string chainID)
         {
             return GetValueByKey(chainID, "UniswapV2Router");
+        }
+
+        public static string GetUniV2FactoryAddress(string chainID)
+        {
+            return GetValueByKey(chainID, "FactoryAddress");
+        }
+
+        public static string GetUniV2FactoryCodeHash(string chainID)
+        {
+            return GetValueByKey(chainID, "FactoryCodeHash");
         }
 
         public static string ConfigInfo(ChainConfigName? _chainConfigName, ChainConfigPart part)

@@ -62,28 +62,28 @@ namespace BlockStorm.Samples
             //await Subscriptions.GetSyncReserve_Observable_Subscription();
             //await GetResult();
             //var account = new Nethereum.Web3.Accounts.Account(pk);
-            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
-            //var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
-            var web3 = new Web3(httpURL);
+            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
+            //var web3 = new Web3(httpURL);
 
 
 
             //ContractHandler ch = web3.Eth.contrac
 
 
-            for (int i = 0; i < 50; i++)
-            {
-                HexBigInteger position = new(BigInteger.Zero + i);
-                string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
-                Output.WriteLine($"{i}:  {code}");
-            }
-            Console.ReadLine();
-
-            //string tokenA = "0x5f6a0F971e67eb5FfFdb9f1C27572C5EAb6A631C";
-            //string tokenB = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-            //string pair = UniswapV2ContractsReader.GetUniswapV2PairAddress(tokenA, tokenB);
-            //Console.WriteLine(pair);
+            //for (int i = 0; i < 50; i++)
+            //{
+            //    HexBigInteger position = new(BigInteger.Zero + i);
+            //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
+            //    Output.WriteLine($"{i}:  {code}");
+            //}
             //Console.ReadLine();
+
+            string tokenA = "0x9359500B557f77010086d16CBA9Fd48b7368045c";
+            string tokenB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+            string pair = UniswapV2ContractsReader.GetUniV2PairAddress(tokenA, tokenB, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
+            Console.WriteLine(pair);
+            Console.ReadLine();
 
             //string address = "0x4b46f53bD0ba6a58d37D1EF5965e5Bc1E7556D9d";
             //string symbol = "OHM";
@@ -147,9 +147,9 @@ namespace BlockStorm.Samples
             //{
             //    Console.WriteLine("发送失败");
             //}
-            var str1 = "0x000000000000000000000000008b5395d595ebe4ddf4ae000d0a9eb2d381d282";
-            var str2 = "0x008B5395d595ebE4ddF4Ae000D0a9eB2D381D282";
-            Console.WriteLine(str1.Substring(str1.Length - 40, 40).IsTheSameAddress(str2));
+            //var str1 = "0x000000000000000000000000008b5395d595ebe4ddf4ae000d0a9eb2d381d282";
+            //var str2 = "0x008B5395d595ebE4ddF4Ae000D0a9eB2D381D282";
+            //Console.WriteLine(str1.Substring(str1.Length - 40, 40).IsTheSameAddress(str2));
 
             //var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
             //var privateKey = ecKey.GetPrivateKeyAsBytes().ToHex();

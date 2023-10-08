@@ -21,17 +21,15 @@ namespace BlockStorm.NethereumModule
 {
     public class UniswapV2ContractsReader
     {
-        private static readonly string uniswapV2FactoryAddress = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
-
-        public static string GetUniswapV2PairAddress(string tokenA, string tokenB)
+        public static string GetUniV2PairAddress(string tokenA, string tokenB, string factoryAddress, string factoryCodeHash)
         {
             var tokenAHex = new HexBigInteger(tokenA);
             var tokenBHex = new HexBigInteger(tokenB);
             var sha3 = new Sha3Keccack();
             string salt = tokenAHex.Value < tokenBHex.Value ? sha3.CalculateHashFromHex(tokenA, tokenB) : sha3.CalculateHashFromHex(tokenB, tokenA);
-            return ContractUtils.CalculateCreate2AddressUsingByteCodeHash(uniswapV2FactoryAddress,
+            return ContractUtils.CalculateCreate2AddressUsingByteCodeHash(factoryAddress,
                 salt,
-                "96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f");//initial pair creation code hash
+                factoryCodeHash);//initial pair creation code hash
         }
 
         public static bool IsAddressSmaller(string tokenA, string tokenB)

@@ -3,6 +3,7 @@ using BlockStorm.NethereumModule;
 using BlockStorm.NethereumModule.Contracts.Controller;
 using BlockStorm.Utils;
 using Nethereum.Contracts.ContractHandlers;
+using Nethereum.Hex.HexTypes;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
 using Org.BouncyCastle.Cms;
@@ -36,6 +37,8 @@ namespace BlockStorm.Infinity.CampaignManager
         public string wrappedNativeAddr;
         public string controllerAddr;
         public Web3Account.Account controllerOwnerAccount;
+
+        public BigInteger gasPrice;
 
         private Web3 web3;
 
@@ -149,6 +152,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 {
                     Amount = amountToSend - controllerETHBalanceInWei
                 };
+                if (chainID == 56)
+                {
+                    withdrawWethToETH50992Function.GasPrice = gasPrice;
+                }
                 var withdrawWethToETH50992FunctionTxnReceipt = await contractHandler.SendRequestAndWaitForReceiptAsync(withdrawWethToETH50992Function);
                 if (withdrawWethToETH50992FunctionTxnReceipt.Failed())
                 {
@@ -167,6 +174,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 amountToSend
             }
             };
+            if (chainID == 56)
+            {
+                distributeNativeT0kensFunction.GasPrice = gasPrice;
+            }
             var distributeNativeT0kensFunctionTxnReceipt = await contractHandler.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
             if (distributeNativeT0kensFunctionTxnReceipt.Failed())
             {

@@ -55,7 +55,7 @@ namespace BlockStorm.Infinity.CampaignManager
             Success=null; 
             ExecutionTime = null;
             TradeInterval = interval;
-            pairAddr = UniswapV2ContractsReader.GetUniswapV2PairAddress(wrappedNativeAddr, tradeToken);
+            pairAddr = UniswapV2ContractsReader.GetUniV2PairAddress(wrappedNativeAddr, tradeToken, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
 
         }
 
@@ -91,7 +91,7 @@ namespace BlockStorm.Infinity.CampaignManager
             return str.ToString();
         }
 
-        internal async Task<(bool, BigInteger)> ExcuteTaskAsync(CancellationToken cancelToken)
+        internal async Task<(bool, BigInteger)> ExcuteTaskAsync(CancellationToken cancelToken, BigInteger gasPrice)
         {
             var account = new Nethereum.Web3.Accounts.Account(Trader.PrivateKey);
             var web3ForTrader = new Web3(account, httpURL);
@@ -105,7 +105,9 @@ namespace BlockStorm.Infinity.CampaignManager
                 var approveFunctionForWrappedNative = new NethereumModule.Contracts.UniswapV2ERC20.ApproveFunction
                 {
                     Spender = routerAddr,
-                    Value = TradeAmount.Value
+                    Value = TradeAmount.Value,
+                    GasPrice = gasPrice
+               
                 };
                 var approveFunctionTxnReceipt = await wrappedNativeContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForWrappedNative, cancelToken);
                 
@@ -132,7 +134,8 @@ namespace BlockStorm.Infinity.CampaignManager
                         TradeToken
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
+                    GasPrice = gasPrice
                 };
                 var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction, cancelToken);
                 if(swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
@@ -163,6 +166,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 {
                     Spender = routerAddr,
                     Value = amountIn,
+                    GasPrice = gasPrice
                 };
                 var approveFunctionTxnReceipt = await tokenContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForToken, cancelToken);
                 if (approveFunctionTxnReceipt.Failed())
@@ -188,7 +192,8 @@ namespace BlockStorm.Infinity.CampaignManager
                         wrappedNativeAddr
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds()
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
+                    GasPrice = gasPrice
                 };
                 var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction, cancelToken);
                 if (swapExactTokensForTokensFunctionTxnReceipt.Succeeded())

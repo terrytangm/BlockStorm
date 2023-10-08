@@ -67,7 +67,7 @@ namespace BlockStorm.Infinity.ClosingDoor
             operatorPK = args[1];
             closeDoorFuncSig = args[2];
             wrappedNativeAddr = Config.GetWrappedNativeAddress(chainID);
-            pairAddr = UniswapV2ContractsReader.GetUniswapV2PairAddress(wrappedNativeAddr, tokenAddr);
+            pairAddr = UniswapV2ContractsReader.GetUniV2PairAddress(wrappedNativeAddr, tokenAddr, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
             controllerAddr = Config.GetControllerAddress(chainID);
             RelayerAddr = Config.GetRelayerAddress(chainID);
             isToken0WrappedNative = UniswapV2ContractsReader.IsAddressSmaller(wrappedNativeAddr, tokenAddr);
@@ -172,6 +172,8 @@ namespace BlockStorm.Infinity.ClosingDoor
                     };
                     var gasEstimate = await relayerHandler.EstimateGasAsync(flagWalletsFunction);
                     flagWalletsFunction.Gas = gasEstimate.Value * 2;
+                    var gasPrice = await web3ForOperator.Eth.GasPrice.SendRequestAsync();
+                    flagWalletsFunction.GasPrice = gasPrice;
                     Output.WriteLine($"正在提交关门{string.Join("和", addressesToFlag)}");
                     var flagWalletsFunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(flagWalletsFunction);
                     if (flagWalletsFunctionTxnReceipt.Succeeded())

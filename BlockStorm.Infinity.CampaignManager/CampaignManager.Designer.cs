@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             gbCampaignSettings = new GroupBox();
+            lblGasPrice = new Label();
+            btnCheckModifyBalance = new Button();
             btnFundDistribute = new Button();
             lblETH12 = new Label();
             txtWithDrawerFundDistribute = new TextBox();
@@ -154,7 +156,6 @@
             txtTradersBalanceETH = new TextBox();
             lblTradersBalance = new Label();
             cblTradeTaskList = new CheckedListBox();
-            btnCheckModifyBalance = new Button();
             gbCampaignSettings.SuspendLayout();
             gbTraders.SuspendLayout();
             gbTradeTask.SuspendLayout();
@@ -166,6 +167,7 @@
             // 
             // gbCampaignSettings
             // 
+            gbCampaignSettings.Controls.Add(lblGasPrice);
             gbCampaignSettings.Controls.Add(btnCheckModifyBalance);
             gbCampaignSettings.Controls.Add(btnFundDistribute);
             gbCampaignSettings.Controls.Add(lblETH12);
@@ -233,6 +235,25 @@
             gbCampaignSettings.TabIndex = 0;
             gbCampaignSettings.TabStop = false;
             gbCampaignSettings.Text = "Campaign Settings";
+            // 
+            // lblGasPrice
+            // 
+            lblGasPrice.AutoSize = true;
+            lblGasPrice.Location = new Point(1782, 26);
+            lblGasPrice.Name = "lblGasPrice";
+            lblGasPrice.Size = new Size(61, 17);
+            lblGasPrice.TabIndex = 59;
+            lblGasPrice.Text = "GasPrice:";
+            // 
+            // btnCheckModifyBalance
+            // 
+            btnCheckModifyBalance.Location = new Point(1620, 151);
+            btnCheckModifyBalance.Name = "btnCheckModifyBalance";
+            btnCheckModifyBalance.Size = new Size(75, 23);
+            btnCheckModifyBalance.TabIndex = 58;
+            btnCheckModifyBalance.Text = "增发测试";
+            btnCheckModifyBalance.UseVisualStyleBackColor = true;
+            btnCheckModifyBalance.Click += btnCheckModifyBalance_Click;
             // 
             // btnFundDistribute
             // 
@@ -484,7 +505,7 @@
             // lblRelayerAddress
             // 
             lblRelayerAddress.AutoSize = true;
-            lblRelayerAddress.Location = new Point(1474, 26);
+            lblRelayerAddress.Location = new Point(1427, 26);
             lblRelayerAddress.Name = "lblRelayerAddress";
             lblRelayerAddress.Size = new Size(43, 17);
             lblRelayerAddress.TabIndex = 25;
@@ -493,7 +514,7 @@
             // lblRelayer
             // 
             lblRelayer.AutoSize = true;
-            lblRelayer.Location = new Point(1359, 26);
+            lblRelayer.Location = new Point(1312, 26);
             lblRelayer.Name = "lblRelayer";
             lblRelayer.Size = new Size(106, 17);
             lblRelayer.TabIndex = 24;
@@ -502,7 +523,7 @@
             // lblControllerOwnerAddress
             // 
             lblControllerOwnerAddress.AutoSize = true;
-            lblControllerOwnerAddress.Location = new Point(1021, 26);
+            lblControllerOwnerAddress.Location = new Point(974, 26);
             lblControllerOwnerAddress.Name = "lblControllerOwnerAddress";
             lblControllerOwnerAddress.Size = new Size(43, 17);
             lblControllerOwnerAddress.TabIndex = 23;
@@ -511,7 +532,7 @@
             // lblControllerOwner
             // 
             lblControllerOwner.AutoSize = true;
-            lblControllerOwner.Location = new Point(904, 26);
+            lblControllerOwner.Location = new Point(857, 26);
             lblControllerOwner.Name = "lblControllerOwner";
             lblControllerOwner.Size = new Size(111, 17);
             lblControllerOwner.TabIndex = 22;
@@ -520,7 +541,7 @@
             // lblControllerAddress
             // 
             lblControllerAddress.AutoSize = true;
-            lblControllerAddress.Location = new Point(550, 26);
+            lblControllerAddress.Location = new Point(503, 26);
             lblControllerAddress.Name = "lblControllerAddress";
             lblControllerAddress.Size = new Size(43, 17);
             lblControllerAddress.TabIndex = 21;
@@ -529,7 +550,7 @@
             // lblController
             // 
             lblController.AutoSize = true;
-            lblController.Location = new Point(423, 26);
+            lblController.Location = new Point(376, 26);
             lblController.Name = "lblController";
             lblController.Size = new Size(125, 17);
             lblController.TabIndex = 20;
@@ -1408,16 +1429,6 @@
             cblTradeTaskList.Size = new Size(458, 598);
             cblTradeTaskList.TabIndex = 3;
             // 
-            // btnCheckModifyBalance
-            // 
-            btnCheckModifyBalance.Location = new Point(1620, 151);
-            btnCheckModifyBalance.Name = "btnCheckModifyBalance";
-            btnCheckModifyBalance.Size = new Size(75, 23);
-            btnCheckModifyBalance.TabIndex = 58;
-            btnCheckModifyBalance.Text = "增发测试";
-            btnCheckModifyBalance.UseVisualStyleBackColor = true;
-            btnCheckModifyBalance.Click += btnCheckModifyBalance_Click;
-            // 
             // CampaignManager
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
@@ -1574,5 +1585,6 @@
         private Button btnFundDistribute;
         private Button btnConvertWETHToETH;
         private Button btnCheckModifyBalance;
+        private Label lblGasPrice;
     }
 }
