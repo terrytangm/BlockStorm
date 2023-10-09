@@ -133,6 +133,11 @@ namespace BlockStorm.Infinity.ClosingDoor
 
                 //以下判断一下swap事件的to，是不是erc20代币转移路径的终点
                 var txnReceipt = await web3ForOperator.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(swapLog.TransactionHash);
+                if (txnReceipt == null )
+                {
+                    Thread.Sleep(2000);
+                    txnReceipt = await web3ForOperator.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(swapLog.TransactionHash);
+                }
                 var transferEvents = txnReceipt.DecodeAllEvents<NethereumModule.Contracts.UniswapV2ERC20.TransferEventDTO>();
                 var transferEventForToken = transferEvents.Where(t => t.Log.Address.IsTheSameAddress(tokenAddr)).ToList();
                 var relatedAddresses = transferEventForToken.Select(t => t.Event.To).Union(transferEventForToken.Select(t => t.Event.From)).ToList();
