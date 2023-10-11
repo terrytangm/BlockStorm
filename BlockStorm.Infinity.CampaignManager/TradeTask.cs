@@ -81,13 +81,13 @@ namespace BlockStorm.Infinity.CampaignManager
         {
             var str = new StringBuilder();
             str.Append(TaskType == TradeTaskType.buy ? "买" : "卖");
-            str.Append($" | Account ID: {Trader.Id}");
-            str.Append($" | Ratio: {TradeRatio}% | ");
+            str.Append($" | ID: {Trader.Id}");
+            str.Append($" | {TradeRatio}% | ");
             str.Append(Executed ? "已执行" : "未执行");
             if (Success != null)
-                str.Append($" | 执行结果: {(Success.Value ? "成功" : "失败")}");
+                str.Append($" | {(Success.Value ? "成功" : "失败")}");
             if (ExecutionTime != null)
-                str.Append($" | 执行时间: {ExecutionTime.Value.ToString("MM-dd HH-mm-ss")}");
+                str.Append($" | {ExecutionTime.Value.ToString("MM-dd HH-mm-ss")}");
             return str.ToString();
         }
 

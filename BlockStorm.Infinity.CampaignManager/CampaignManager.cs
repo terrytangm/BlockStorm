@@ -274,6 +274,10 @@ namespace BlockStorm.Infinity.CampaignManager
                 {
 
                 }
+                catch (RpcResponseException ex)
+                {
+
+                }
                 catch (SmartContractRevertException ex)
                 {
                 }
@@ -535,7 +539,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 if (nativeBalanceInETH >= gasThresholdRandom) continue;
                 decimal neededGas = gasThresholdRandom - nativeBalanceInETH;
                 decimal wrappedNativeBalanceInETH = await uniswapV2Reader.GetWrappedNativeBalanceInETH(wrappedNativeAddr, address);
-                if (wrappedNativeBalanceInETH >= neededGas)
+                if (wrappedNativeBalanceInETH >= neededGas && nativeBalanceInETH > 0)
                 {
                     dgvTraderList.Rows[i].Cells[dgColumnIndex["¥˝∑÷≈‰GAS"]].Value = $"{neededGas} From WETH";
                     WETH2ETHAddressList.Add(address);
@@ -865,6 +869,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (chainID == 56)
             {
                 approveFunctionForWrappedNative.GasPrice = gasPrice;
+                Thread.Sleep(3000);
             }
             var approveFunctionForWrappedNativeTxnReceipt = await wrappedNativeContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(approveFunctionForWrappedNative);
             if (approveFunctionForWrappedNativeTxnReceipt.Succeeded())
@@ -914,6 +919,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (chainID == 56)
             {
                 addLiquidityFunction.GasPrice = gasPrice;
+                Thread.Sleep(5000);
             }
             var addLiquidityFunctionTxnReceipt = await routerContractHanderForDeployer.SendRequestAndWaitForReceiptAsync(addLiquidityFunction);
             var lpTokenInHex = new HexBigInteger(0);
@@ -952,6 +958,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (chainID == 56)
             {
                 approveFunctionForLpToken.GasPrice = gasPrice;
+                Thread.Sleep(3000);
             }
             var approveFunctionForLpTokenTxnReceipt = await pairContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(approveFunctionForLpToken);
             if (approveFunctionForLpTokenTxnReceipt.Succeeded())
@@ -978,6 +985,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (chainID == 56)
             {
                 @lockFunction.GasPrice = gasPrice;
+                Thread.Sleep(3000);
             }
             var @lockFunctionTxnReceipt = await pinkLockContractHandlerForDeployer.SendRequestAndWaitForReceiptAsync(@lockFunction);
             if (@lockFunctionTxnReceipt.Succeeded())

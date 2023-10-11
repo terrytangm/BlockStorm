@@ -301,7 +301,7 @@ namespace BlockStorm.Samples.Contracts.UniswapV2Pair
     public class BalanceOfFunctionBase : FunctionMessage
     {
         [Parameter("address", "", 1)]
-        public virtual string ReturnValue1 { get; set; }
+        public virtual string HolderAddress { get; set; }
     }
 
     public partial class BurnFunction : BurnFunctionBase { }

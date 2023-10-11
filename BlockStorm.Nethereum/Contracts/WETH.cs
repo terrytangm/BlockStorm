@@ -200,7 +200,7 @@ namespace BlockStorm.NethereumModule.Contracts.WETH
     public class BalanceOfFunctionBase : FunctionMessage
     {
         [Parameter("address", "", 1)]
-        public virtual string ReturnValue1 { get; set; }
+        public virtual string HolderAddress { get; set; }
     }
 
     public partial class DecimalsFunction : DecimalsFunctionBase { }
