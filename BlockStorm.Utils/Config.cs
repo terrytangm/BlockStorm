@@ -21,7 +21,8 @@ namespace BlockStorm.Utils
         ArbitrumAlchemy,
         ArbitrumInfura,
         ETHGoerliFork,
-        BSCFork
+        BSCFork,
+        ETHMainNetFork
     }
 
     public enum ChainConfigPart

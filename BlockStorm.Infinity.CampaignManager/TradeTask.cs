@@ -105,8 +105,8 @@ namespace BlockStorm.Infinity.CampaignManager
                 var approveFunctionForWrappedNative = new NethereumModule.Contracts.UniswapV2ERC20.ApproveFunction
                 {
                     Spender = routerAddr,
-                    Value = TradeAmount.Value,
-                    GasPrice = gasPrice
+                    Value = TradeAmount.Value
+                    //GasPrice = gasPrice
                
                 };
                 var approveFunctionTxnReceipt = await wrappedNativeContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForWrappedNative, cancelToken);
@@ -134,8 +134,8 @@ namespace BlockStorm.Infinity.CampaignManager
                         TradeToken
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
-                    GasPrice = gasPrice
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(60).ToUnixTimeSeconds()
+                    //GasPrice = gasPrice
                 };
                 var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction, cancelToken);
                 if(swapExactTokensForTokensFunctionTxnReceipt.Succeeded())
@@ -165,8 +165,8 @@ namespace BlockStorm.Infinity.CampaignManager
                 var approveFunctionForToken = new NethereumModule.Contracts.UniswapV2ERC20.ApproveFunction
                 {
                     Spender = routerAddr,
-                    Value = amountIn,
-                    GasPrice = gasPrice
+                    Value = amountIn
+                    //GasPrice = gasPrice
                 };
                 var approveFunctionTxnReceipt = await tokenContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(approveFunctionForToken, cancelToken);
                 if (approveFunctionTxnReceipt.Failed())
@@ -192,8 +192,8 @@ namespace BlockStorm.Infinity.CampaignManager
                         wrappedNativeAddr
                     },
                     To = Trader.Address,
-                    Deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeSeconds(),
-                    GasPrice = gasPrice
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(60).ToUnixTimeSeconds()
+                    //GasPrice = gasPrice
                 };
                 var swapExactTokensForTokensFunctionTxnReceipt = await routerContractHandlerForTrader.SendRequestAndWaitForReceiptAsync(swapExactTokensForTokensFunction, cancelToken);
                 if (swapExactTokensForTokensFunctionTxnReceipt.Succeeded())

@@ -222,7 +222,7 @@ namespace BlockStorm.Infinity.CampaignManager
             if (tradeTaskList[currentTaskIndex].TradeInterval <= 0 && tradeTaskList[currentTaskIndex].TradeInterval >= -3)
             {
                 var cancelTokenSource = new CancellationTokenSource();
-                cancelTokenSource.CancelAfter(70 * 1000);
+                cancelTokenSource.CancelAfter(50 * 1000);
                 try
                 {
                     (bool success, BigInteger amount) = await tradeTaskList[currentTaskIndex].ExcuteTaskAsync(cancelTokenSource.Token, gasPrice);
@@ -733,7 +733,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 }
                 else
                 {
-                    int intervalDelta = tradeIntervalMedian / 5;
+                    int intervalDelta = tradeIntervalMedian / 4;
                     tradeInterval = rn.Next(tradeIntervalMedian - intervalDelta, tradeIntervalMedian + intervalDelta);
                 }
                 if (tradeTaskType == TradeTaskType.buy)
@@ -743,9 +743,9 @@ namespace BlockStorm.Infinity.CampaignManager
                         .OrderByDescending(b => b.Value)
                         .ToList(); // 买入任务的待选账号范围：之前没被编排过交易任务的
                     if (pickableTraders.IsNullOrEmpty()) continue;
-                    if (i < 8)
+                    if (i < 5)
                     {
-                        pickableTraders = pickableTraders.Take(5).ToList(); // 前8笔交易，从top 5余额的账号中挑选
+                        pickableTraders = pickableTraders.Take(5).ToList(); // 前5笔交易，从top 3余额的账号中挑选
                     }
                     int luckyDraw = rn.Next(0, pickableTraders.Count - 1);
                     var pickedTrader = pickableTraders[luckyDraw];
@@ -1148,7 +1148,7 @@ namespace BlockStorm.Infinity.CampaignManager
             //var fee1559 = await etherTransferService.SuggestFeeToTransferWholeBalanceInEtherAsync();
             var estimatedGas = await controllerContractHandlerForOwner.EstimateGasAsync<ReceiveNativeT0kensFunction>();
             //var gasReserve = (fee1559.MaxFeePerGas + fee1559.MaxPriorityFeePerGas) * estimatedGas.Value;
-            var gasReserve = gasPrice.Value * 3 / 2 * estimatedGas.Value;
+            var gasReserve = gasPrice.Value * 7 / 4 * estimatedGas.Value;
             if (ethBalances[contractDeployer.Address] > Web3.Convert.FromWei(gasReserve))
             {
                 var contollerContractHandlerForContractDeployer = web3ForContractDeployer.Eth.GetContractHandler(controllerAddr);
