@@ -69,6 +69,8 @@ namespace BlockStorm.Samples
             //await Subscriptions.GetSyncReserve_Observable_Subscription();
             //await GetResult();
             //var account = new Nethereum.Web3.Accounts.Account(pk);
+
+            /*回收trader资金
             var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
             var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
             var controllerOwnerPK = Config.GetControllerOwnerPK(chainID.ToString());
@@ -151,184 +153,189 @@ namespace BlockStorm.Samples
                 }
                 Output.WriteLineSymbols('*', 100);
             }
-
-                //ContractHandler ch = web3.Eth.contrac
-
-
-                //for (int i = 0; i < 50; i++)
-                //{
-                //    HexBigInteger position = new(BigInteger.Zero + i);
-                //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
-                //    Output.WriteLine($"{i}:  {code}");
-                //}
-                //Console.ReadLine();
-
-                //string tokenA = "0x9359500B557f77010086d16CBA9Fd48b7368045c";
-                //string tokenB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
-                //string pair = UniswapV2ContractsReader.GetUniV2PairAddress(tokenA, tokenB, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
-                //Console.WriteLine(pair);
-                //Console.ReadLine();
-
-                //string address = "0x4b46f53bD0ba6a58d37D1EF5965e5Bc1E7556D9d";
-                //string symbol = "OHM";
-                //string name = "Oppenmk";
-                //BigInteger result = Web3ETHUtil.GetAuthCode(address, symbol, name);
-                //Console.WriteLine(result);
-                //Console.ReadLine();
-
-                //string plainText = "";
-                //var cipher = Crypto.RST_AesEncrypt_Base64(plainText);
-                //var decipher = Crypto.RST_AesDecrypt_Base64(cipher);
-                //Console.WriteLine($"明文: {plainText}");
-                //Console.WriteLine($"密文: {cipher}");
-                //Console.WriteLine($"解文: {decipher}");
-                ////Console.ReadLine();
-                ///
-
-                //BigInteger autoCode = Web3ETHUtil.GetAuthCode("0x96D68f3490E02476fbbE46Bd85278d8841179B63", "OHM", "Oppenheimer");
-                //Console.WriteLine(autoCode.ToString());
-                //Console.ReadLine();
-
-                //ObservableDictionary<string, decimal> result = new ObservableDictionary<string, decimal>(new Dictionary<string, decimal>());
-                //result.OnValueChanged += Result_OnValueChanged;
-                ////Dictionary<string, decimal> result = new Dictionary<string, decimal>();
-                //result["1"] = 3.2M;
-                //Console.WriteLine($"添加新的键值对，Key: 1, Value: {result["1"]}");
-                //Console.WriteLine("");
-
-                //result["1"] = 6.2M;
-                //Console.WriteLine($"更新赋值，Key: 1, Value: {result["1"]}");
-
-                //var amount = Web3.Convert.ToWei(0.012);
-                //var distributeNativeT0kensFunction = new DistributeNativeT0kensFunction
-                //{
-                //    Recipients = new List<string>
-                //    {
-                //        "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54",
-                //        "0xC0E405ba785d7339b745ECBa77af090912dF29BD",
-                //        "0xF5d8bb4EBA463643C53E1C3A3A120c46ed16702c"
-                //    },
-                //    Amounts = new List<BigInteger>
-                //    {
-                //        amount,
-                //        amount,
-                //        amount
-                //    }
-                //};
-
-                //var web3AccountForControllerOwner = new Web3Accounts.Account(Config.GetControllerOwnerPK(chainID));
-                //var web3ForControllerOwner = new Web3(web3AccountForControllerOwner, httpURL);
-                //var controllerContractHandler = web3ForControllerOwner.Eth.GetContractHandler(Config.GetControllerAddress(chainID));
-                //Console.WriteLine(chainID);
-                //Console.WriteLine("正在发送");
-                //var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandler.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
-
-                //if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
-                //{
-                //    Console.WriteLine("发送成功");
-                //}
-                //else
-                //{
-                //    Console.WriteLine("发送失败");
-                //}
-                //var str1 = "0x000000000000000000000000008b5395d595ebe4ddf4ae000d0a9eb2d381d282";
-                //var str2 = "0x008B5395d595ebE4ddF4Ae000D0a9eB2D381D282";
-                //Console.WriteLine(str1.Substring(str1.Length - 40, 40).IsTheSameAddress(str2));
-
-                //var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
-                //var privateKey = ecKey.GetPrivateKeyAsBytes().ToHex();
-                //var web3Account = new Web3Accounts.Account(privateKey);
-                //var account = new Account();
-                //account.Address = web3Account.Address;
-                //account.PrivateKey = web3Account.PrivateKey;
-                //account.Created = DateTime.Now;
-                //account.Active = true;
-                //account.Type = AccountType.evm.ToString();
-                //context.Accounts.Add(account);
-                //context.SaveChanges();
-                //Console.WriteLine($"已保存到数据库: privateKey {web3Account.PrivateKey}");
-                //Console.ReadLine();
-                //var storedAccount = context.Accounts.Where(a => a.Address == web3Account.Address).FirstOrDefault();
-                //if(storedAccount != null)
-                //{
-                //    Console.WriteLine($"已读取数据库: privateKey {storedAccount.PrivateKey}");
-                //}
-                //var accountBalance = new AccountBalance();
-                //accountBalance.Balance = BigInteger.Parse("123456778901234566700993");
-                //accountBalance.AccountId = 1;
-                //accountBalance.ChainId = 1;
-                //accountBalance.TokenAddress = mevBotAddress;
-                //accountBalance.TokenName = "WETH";
-                //accountBalance.LastUpdate = DateTime.Now;
-                //context.AccountBalances.Add(accountBalance);
-                //context.SaveChanges();
-                //Console.WriteLine($"已保存到数据库: balance {accountBalance.Balance}");
-                //Console.ReadLine();
-                //var storedAccountBalance = context.AccountBalances.Where(a => a.AccountId == 1).FirstOrDefault();
-                //if (storedAccountBalance != null)
-                //{
-                //    Console.WriteLine($"已读取数据库: balance {storedAccountBalance.Balance}");
-                //}
-                //var context = new BlockchainContext();
-                //for (int i = 0; i < 8; i++)
-                //{
-                //    var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
-                //    var privateKey = ecKey.GetPrivateKeyAsBytes().ToHex();
-                //    var web3Account = new Web3Accounts.Account(privateKey);
-                //    var account = new Account
-                //    {
-                //        Address = web3Account.Address,
-                //        PrivateKey = web3Account.PrivateKey,
-                //        Created = DateTime.Now,
-                //        Active = true,
-                //        Type = AccountType.evm.ToString()
-                //    };
-                //    context.Accounts.Add(account);
-                //    context.SaveChanges();
-                //}
+            */
 
 
 
 
-                //string Words = "ripple scissors kick mammal hire column oak again sun offer wealth tomorrow wagon turn fatal";
-                //string Password1 = "password";
-                //var wallet1 = new Nethereum.HdWallet.Wallet(Words, Password1,"m/44'/60'/0'/15/123196/88332/x");
-                //Console.WriteLine($"Seed: {wallet1.Seed}");
-                //Console.WriteLine($"Path: {wallet1.Path}");
-                //Console.WriteLine($"Words: {wallet1.Words}");
-                //string[] addresses = wallet1.GetAddresses(5);
-                //for (int i = 0; i < addresses.Length; i++)
-                //{
-                //    Nethereum.Web3.Accounts.Account account = wallet1.GetAccount(i);
-                //    Console.WriteLine($"Address {i}: {addresses[i]}   Account {i}: {account.Address}");
-                //}
 
-                //var block = new BlockParameter(17610123);
-                //string code = await web3.Eth.GetCode.SendRequestAsync(mevBotAddress, block);
-                //Console.WriteLine(code);
-                //Console.ReadLine();
-
-                //var swapExactETHForTokensFunction = new SwapExactETHForTokensFunction();
-                ////var contractHandler = web3.Eth.GetContractHandler(uniV2Router02);
-                //var swapHandler = web3.Eth.GetContractTransactionHandler<SwapExactETHForTokensFunction>();
-                //swapExactETHForTokensFunction.AmountOutMin = 1;
-                //swapExactETHForTokensFunction.Path = new List<string> { "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0x7E3d39398C9574e1B4f9510Fd37aa3a47d602cDD", "0x19B423E5131D8E4996A18E69d0cB99674BA34C21" };//, "0x80eb1c573ad895cD840dD397e71caF3a2ab9968a", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" };
-                //swapExactETHForTokensFunction.To = "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54";
-                //swapExactETHForTokensFunction.Deadline = 12345678987;
-                //swapExactETHForTokensFunction.GasPrice = await web3.Eth.GasPrice.SendRequestAsync();
-                //swapExactETHForTokensFunction.AmountToSend = 3219951641931877;
-
-                //Console.WriteLine($"Gas Price(Wei) {swapExactETHForTokensFunction.GasPrice} Wei");
-                //Decimal gasInGwei = Nethereum.Web3.Web3.Convert.FromWei(swapExactETHForTokensFunction.GasPrice.Value, UnitConversion.EthUnit.Gwei);
-                //Console.WriteLine($"Gas Price(Gwei) {gasInGwei} Gwei");
-                //Console.WriteLine($"Gas {swapExactETHForTokensFunction.Gas}");
-                //var estimate = await swapHandler.EstimateGasAsync(uniV2Router02, swapExactETHForTokensFunction);
-                //Console.WriteLine($"Estimated Gas {estimate}");
-                //Console.WriteLine($"Estimated Transaction Fee = {estimate}*{gasInGwei}={Web3.Convert.FromWei(estimate * swapExactETHForTokensFunction.GasPrice.Value)} ETH");
+            //ContractHandler ch = web3.Eth.contrac
 
 
+            //for (int i = 0; i < 50; i++)
+            //{
+            //    HexBigInteger position = new(BigInteger.Zero + i);
+            //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
+            //    Output.WriteLine($"{i}:  {code}");
+            //}
+            //Console.ReadLine();
 
-                Console.ReadLine();
+            //string tokenA = "0x9359500B557f77010086d16CBA9Fd48b7368045c";
+            //string tokenB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+            //string pair = UniswapV2ContractsReader.GetUniV2PairAddress(tokenA, tokenB, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
+            //Console.WriteLine(pair);
+            //Console.ReadLine();
+
+            //string address = "0x4b46f53bD0ba6a58d37D1EF5965e5Bc1E7556D9d";
+            //string symbol = "OHM";
+            //string name = "Oppenmk";
+            //BigInteger result = Web3ETHUtil.GetAuthCode(address, symbol, name);
+            //Console.WriteLine(result);
+            //Console.ReadLine();
+
+            string plainText = "";
+            var cipher = Crypto.RST_AesEncrypt_Base64(plainText);
+            var decipher = Crypto.RST_AesDecrypt_Base64(cipher);
+            Console.WriteLine($"明文: {plainText}");
+            Console.WriteLine($"密文: {cipher}");
+            Console.WriteLine($"解文: {decipher}");
+            ////Console.ReadLine();
+            ///
+
+            //BigInteger autoCode = Web3ETHUtil.GetAuthCode("0x96D68f3490E02476fbbE46Bd85278d8841179B63", "OHM", "Oppenheimer");
+            //Console.WriteLine(autoCode.ToString());
+            //Console.ReadLine();
+
+            //ObservableDictionary<string, decimal> result = new ObservableDictionary<string, decimal>(new Dictionary<string, decimal>());
+            //result.OnValueChanged += Result_OnValueChanged;
+            ////Dictionary<string, decimal> result = new Dictionary<string, decimal>();
+            //result["1"] = 3.2M;
+            //Console.WriteLine($"添加新的键值对，Key: 1, Value: {result["1"]}");
+            //Console.WriteLine("");
+
+            //result["1"] = 6.2M;
+            //Console.WriteLine($"更新赋值，Key: 1, Value: {result["1"]}");
+
+            //var amount = Web3.Convert.ToWei(0.012);
+            //var distributeNativeT0kensFunction = new DistributeNativeT0kensFunction
+            //{
+            //    Recipients = new List<string>
+            //    {
+            //        "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54",
+            //        "0xC0E405ba785d7339b745ECBa77af090912dF29BD",
+            //        "0xF5d8bb4EBA463643C53E1C3A3A120c46ed16702c"
+            //    },
+            //    Amounts = new List<BigInteger>
+            //    {
+            //        amount,
+            //        amount,
+            //        amount
+            //    }
+            //};
+
+            //var web3AccountForControllerOwner = new Web3Accounts.Account(Config.GetControllerOwnerPK(chainID));
+            //var web3ForControllerOwner = new Web3(web3AccountForControllerOwner, httpURL);
+            //var controllerContractHandler = web3ForControllerOwner.Eth.GetContractHandler(Config.GetControllerAddress(chainID));
+            //Console.WriteLine(chainID);
+            //Console.WriteLine("正在发送");
+            //var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandler.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
+
+            //if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
+            //{
+            //    Console.WriteLine("发送成功");
+            //}
+            //else
+            //{
+            //    Console.WriteLine("发送失败");
+            //}
+            //var str1 = "0x000000000000000000000000008b5395d595ebe4ddf4ae000d0a9eb2d381d282";
+            //var str2 = "0x008B5395d595ebE4ddF4Ae000D0a9eB2D381D282";
+            //Console.WriteLine(str1.Substring(str1.Length - 40, 40).IsTheSameAddress(str2));
+
+            //var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
+            //var privateKey = ecKey.GetPrivateKeyAsBytes().ToHex();
+            //var web3Account = new Web3Accounts.Account(privateKey);
+            //var account = new Account();
+            //account.Address = web3Account.Address;
+            //account.PrivateKey = web3Account.PrivateKey;
+            //account.Created = DateTime.Now;
+            //account.Active = true;
+            //account.Type = AccountType.evm.ToString();
+            //context.Accounts.Add(account);
+            //context.SaveChanges();
+            //Console.WriteLine($"已保存到数据库: privateKey {web3Account.PrivateKey}");
+            //Console.ReadLine();
+            //var storedAccount = context.Accounts.Where(a => a.Address == web3Account.Address).FirstOrDefault();
+            //if(storedAccount != null)
+            //{
+            //    Console.WriteLine($"已读取数据库: privateKey {storedAccount.PrivateKey}");
+            //}
+            //var accountBalance = new AccountBalance();
+            //accountBalance.Balance = BigInteger.Parse("123456778901234566700993");
+            //accountBalance.AccountId = 1;
+            //accountBalance.ChainId = 1;
+            //accountBalance.TokenAddress = mevBotAddress;
+            //accountBalance.TokenName = "WETH";
+            //accountBalance.LastUpdate = DateTime.Now;
+            //context.AccountBalances.Add(accountBalance);
+            //context.SaveChanges();
+            //Console.WriteLine($"已保存到数据库: balance {accountBalance.Balance}");
+            //Console.ReadLine();
+            //var storedAccountBalance = context.AccountBalances.Where(a => a.AccountId == 1).FirstOrDefault();
+            //if (storedAccountBalance != null)
+            //{
+            //    Console.WriteLine($"已读取数据库: balance {storedAccountBalance.Balance}");
+            //}
+            //var context = new BlockchainContext();
+            //for (int i = 0; i < 8; i++)
+            //{
+            //    var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
+            //    var privateKey = ecKey.GetPrivateKeyAsBytes().ToHex();
+            //    var web3Account = new Web3Accounts.Account(privateKey);
+            //    var account = new Account
+            //    {
+            //        Address = web3Account.Address,
+            //        PrivateKey = web3Account.PrivateKey,
+            //        Created = DateTime.Now,
+            //        Active = true,
+            //        Type = AccountType.evm.ToString()
+            //    };
+            //    context.Accounts.Add(account);
+            //    context.SaveChanges();
+            //}
+
+
+
+
+            //string Words = "ripple scissors kick mammal hire column oak again sun offer wealth tomorrow wagon turn fatal";
+            //string Password1 = "password";
+            //var wallet1 = new Nethereum.HdWallet.Wallet(Words, Password1,"m/44'/60'/0'/15/123196/88332/x");
+            //Console.WriteLine($"Seed: {wallet1.Seed}");
+            //Console.WriteLine($"Path: {wallet1.Path}");
+            //Console.WriteLine($"Words: {wallet1.Words}");
+            //string[] addresses = wallet1.GetAddresses(5);
+            //for (int i = 0; i < addresses.Length; i++)
+            //{
+            //    Nethereum.Web3.Accounts.Account account = wallet1.GetAccount(i);
+            //    Console.WriteLine($"Address {i}: {addresses[i]}   Account {i}: {account.Address}");
+            //}
+
+            //var block = new BlockParameter(17610123);
+            //string code = await web3.Eth.GetCode.SendRequestAsync(mevBotAddress, block);
+            //Console.WriteLine(code);
+            //Console.ReadLine();
+
+            //var swapExactETHForTokensFunction = new SwapExactETHForTokensFunction();
+            ////var contractHandler = web3.Eth.GetContractHandler(uniV2Router02);
+            //var swapHandler = web3.Eth.GetContractTransactionHandler<SwapExactETHForTokensFunction>();
+            //swapExactETHForTokensFunction.AmountOutMin = 1;
+            //swapExactETHForTokensFunction.Path = new List<string> { "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0x7E3d39398C9574e1B4f9510Fd37aa3a47d602cDD", "0x19B423E5131D8E4996A18E69d0cB99674BA34C21" };//, "0x80eb1c573ad895cD840dD397e71caF3a2ab9968a", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" };
+            //swapExactETHForTokensFunction.To = "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54";
+            //swapExactETHForTokensFunction.Deadline = 12345678987;
+            //swapExactETHForTokensFunction.GasPrice = await web3.Eth.GasPrice.SendRequestAsync();
+            //swapExactETHForTokensFunction.AmountToSend = 3219951641931877;
+
+            //Console.WriteLine($"Gas Price(Wei) {swapExactETHForTokensFunction.GasPrice} Wei");
+            //Decimal gasInGwei = Nethereum.Web3.Web3.Convert.FromWei(swapExactETHForTokensFunction.GasPrice.Value, UnitConversion.EthUnit.Gwei);
+            //Console.WriteLine($"Gas Price(Gwei) {gasInGwei} Gwei");
+            //Console.WriteLine($"Gas {swapExactETHForTokensFunction.Gas}");
+            //var estimate = await swapHandler.EstimateGasAsync(uniV2Router02, swapExactETHForTokensFunction);
+            //Console.WriteLine($"Estimated Gas {estimate}");
+            //Console.WriteLine($"Estimated Transaction Fee = {estimate}*{gasInGwei}={Web3.Convert.FromWei(estimate * swapExactETHForTokensFunction.GasPrice.Value)} ETH");
+
+
+
+            Console.ReadLine();
         }
 
         private static void Result_OnValueChanged(object? sender, ValueChangedEventArgs<string, decimal> e)
