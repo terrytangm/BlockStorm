@@ -1015,6 +1015,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 MessageBox.Show("关门者为空！");
                 return;
             }
+            /* 打开Console关门程序
             string closeDoorAppPath = Config.GetValueByKey("CloseDoorAppPath");
             var arguments = new List<string>
             {
@@ -1023,6 +1024,21 @@ namespace BlockStorm.Infinity.CampaignManager
                 token.FuncSig
             };
             Process.Start(closeDoorAppPath, arguments);
+            */
+            Thread thread = new Thread(threadPro);
+            thread.Start();
+        }
+
+        private void ShowClosingDoorForm()
+        {
+            var frm = new ClosingDoor();
+            frm.Show();
+        }
+
+        private void threadPro()
+        {
+            var methodInvoker = new MethodInvoker(ShowClosingDoorForm);
+            BeginInvoke(methodInvoker);
         }
 
         private async void BtnLoadCampaign_ClickAsync(object sender, EventArgs e)
