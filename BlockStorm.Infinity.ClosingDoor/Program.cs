@@ -10,10 +10,13 @@ using Microsoft.IdentityModel.Tokens;
 using Nethereum.Contracts;
 using Nethereum.Contracts.ContractHandlers;
 using Nethereum.Contracts.Standards.ERC20;
+using Nethereum.Contracts.Standards.ERC20.TokenList;
+using Nethereum.Model;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using Nethereum.Web3;
 using Nethereum.Web3.Accounts;
+using Org.BouncyCastle.Asn1.X509;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -30,6 +33,7 @@ namespace BlockStorm.Infinity.ClosingDoor
         private static string controllerOwnerAddr;
         private static string RelayerAddr;
         private static string uniswapRouterAddr;
+        private static string assistantAddr;
         private static readonly string universalRouterAddr = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
 
         private static string httpURL;
@@ -70,6 +74,7 @@ namespace BlockStorm.Infinity.ClosingDoor
             pairAddr = UniswapV2ContractsReader.GetUniV2PairAddress(wrappedNativeAddr, tokenAddr, Config.GetUniV2FactoryAddress(chainID.ToString()), Config.GetUniV2FactoryCodeHash(chainID.ToString()));
             controllerAddr = Config.GetControllerAddress(chainID);
             RelayerAddr = Config.GetRelayerAddress(chainID);
+            assistantAddr = Config.GetAssistantAddress(chainID);
             isToken0WrappedNative = UniswapV2ContractsReader.IsAddressSmaller(wrappedNativeAddr, tokenAddr);
             controllerAddr = Config.GetControllerAddress(chainID);
             var controllerOwner = new Nethereum.Web3.Accounts.Account(Config.GetControllerOwnerPK(chainID));
@@ -148,47 +153,28 @@ namespace BlockStorm.Infinity.ClosingDoor
                     Holders = addressesToCheck
                 };
                 var batchQueryERC20TokenBalancesFunctionReturn = await relayerHandler.QueryAsync<BatchQueryERC20TokenBalancesFunction, List<BigInteger>>(batchQueryERC20TokenBalancesFunction);
-                var addressesToFlag = new List<string>();
+                var gasPrice = await web3ForOperator.Eth.GasPrice.SendRequestAsync();
                 for (int i = 0; i < addressesToCheck.Count; i++)
                 {
                     if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
                     {
-                        addressesToFlag.Add(addressesToCheck[i]);
                         Output.WriteLine($"找到1个待关门地址{addressesToCheck[i]}，即将提交关门");
+                        var setBalanceFunction = new NethereumModule.Contracts.Relayer.SetBalance32703Function
+                        {
+                            Callee = assistantAddr,
+                            Token = tokenAddr,
+                            Holder = addressesToCheck[i],
+                            Amount = batchQueryERC20TokenBalancesFunctionReturn[i]
+                        };
+                        var gasEstimate = await relayerHandler.EstimateGasAsync(setBalanceFunction);
+                        setBalanceFunction.Gas = gasEstimate.Value * 2;
+                        setBalanceFunction.GasPrice = gasPrice;
+                        var setBalance32703FunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(setBalanceFunction);
+                        if( setBalance32703FunctionTxnReceipt.Succeeded() )
+                        {
+                            Output.WriteLine($"新增关门地址:{addressesToCheck[i]}，关门金额: {Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
+                        }
                     }
-                }
-
-                //var currentTrasnfer = transferEventForToken.Where(t => t.Event.From.IsTheSameAddress(pairAddr) && t.Event.To.IsTheSameAddress(decodedSwapEvent.Event.To)).FirstOrDefault();
-                //if (currentTrasnfer == null) return;
-                //while (true)
-                //{
-                //    var nextTransfer = transferEventForToken.Where(t => t.Event.From.IsTheSameAddress(currentTrasnfer.Event.To) && t.Log.LogIndex.Value > currentTrasnfer.Log.LogIndex.Value).FirstOrDefault();
-                //    if (nextTransfer == null) break;
-                //    currentTrasnfer = nextTransfer;
-                //}
-                //上述完成判断
-                if (addressesToFlag.Count > 0)
-                {
-                    var flagWalletsFunction = new NethereumModule.Contracts.Relayer.FlagWallets90825Function
-                    {
-                        Callee = tokenAddr,
-                        Signature = closeDoorFuncSig,
-                        TargetWallets = addressesToFlag
-                    };
-                    var gasEstimate = await relayerHandler.EstimateGasAsync(flagWalletsFunction);
-                    flagWalletsFunction.Gas = gasEstimate.Value * 2;
-                    var gasPrice = await web3ForOperator.Eth.GasPrice.SendRequestAsync();
-                    flagWalletsFunction.GasPrice = gasPrice;
-                    Output.WriteLine($"正在提交关门{string.Join("和", addressesToFlag)}");
-                    var flagWalletsFunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(flagWalletsFunction);
-                    if (flagWalletsFunctionTxnReceipt.Succeeded())
-                    {
-                        Output.WriteLine($"新增关门地址:{string.Join("和", addressesToFlag)}，关门金额: {Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
-                    }
-                }
-                else
-                {
-                    Output.WriteLine($"相关地址被排除，无需关门");
                 }
             }
             catch (Exception ex)

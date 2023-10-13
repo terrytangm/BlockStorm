@@ -92,6 +92,11 @@ namespace BlockStorm.Utils
             return GetValueByKey(chainID, "PinkLock02");
         }
 
+        public static string GetAssistantAddress(string chainID)
+        {
+            return GetValueByKey(chainID, "Assistant");
+        }
+
         public static string? GetControllerOwnerPK(string? chainID)
         {
             return Crypto.RST_AesDecrypt_Base64(GetValueByKey(chainID, "ControllerOwner"));
