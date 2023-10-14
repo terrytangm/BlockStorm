@@ -737,7 +737,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 }
                 else
                 {
-                    int intervalDelta = tradeIntervalMedian / 4;
+                    int intervalDelta = tradeIntervalMedian / 3;
                     tradeInterval = rn.Next(tradeIntervalMedian - intervalDelta, tradeIntervalMedian + intervalDelta);
                 }
                 if (tradeTaskType == TradeTaskType.buy)
@@ -747,10 +747,10 @@ namespace BlockStorm.Infinity.CampaignManager
                         .OrderByDescending(b => b.Value)
                         .ToList(); // 买入任务的待选账号范围：之前没被编排过交易任务的
                     if (pickableTraders.IsNullOrEmpty()) continue;
-                    if (i < 5)
-                    {
-                        pickableTraders = pickableTraders.Take(5).ToList(); // 前5笔交易，从top 3余额的账号中挑选
-                    }
+                    //if (i < 5)
+                    //{
+                    //    pickableTraders = pickableTraders.Take(5).ToList(); // 前5笔交易，从top 3余额的账号中挑选
+                    //}
                     int luckyDraw = rn.Next(0, pickableTraders.Count - 1);
                     var pickedTrader = pickableTraders[luckyDraw];
                     var tradeTask = new TradeTask(tokenAddr, traderAccounts.Where(t => t.Address == pickedTrader.Key).FirstOrDefault(), tradeTaskType, tradeInterval)
@@ -1015,7 +1015,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 MessageBox.Show("关门者为空！");
                 return;
             }
-            /* 打开Console关门程序
+            // 打开Console关门程序
             string closeDoorAppPath = Config.GetValueByKey("CloseDoorAppPath");
             var arguments = new List<string>
             {
@@ -1024,9 +1024,11 @@ namespace BlockStorm.Infinity.CampaignManager
                 token.FuncSig
             };
             Process.Start(closeDoorAppPath, arguments);
-            */
-            Thread thread = new Thread(threadPro);
-            thread.Start();
+            
+
+
+            //Thread thread = new Thread(threadPro);
+            //thread.Start();
         }
 
         private void ShowClosingDoorForm()

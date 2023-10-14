@@ -24,6 +24,11 @@ using BlockStorm.NethereumModule.Contracts.Relayer;
 using Nethereum.Contracts.Standards.ERC20.TokenList;
 using Org.BouncyCastle.Asn1.X509;
 using Nethereum.RPC.TransactionManagers;
+using BlockStorm.NethereumModule.Contracts.DeployerCreate2;
+using Nethereum.Model;
+using System;
+using BlockStorm.NethereumModule.Contracts.Assistant;
+using Nethereum.Signer;
 
 namespace BlockStorm.Samples
 {
@@ -47,6 +52,7 @@ namespace BlockStorm.Samples
         private static string myWalletAddress = "0x292464dc8A78024bD446B5840F1aAF0cB86fAC54";
         private static string uniV2Router02 = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 
+        private static string deployerCreate2 = "0x589720882ee47dD6c54E2C1f9a63E372d9A4c8C1";
         private static string mevBotAddress = "0x6b75d8AF000000e20B7a7DDf000Ba900b4009A80";
         private static string scamTokenAddress = "0xb3003f00435dc660074cc2945e54e1effc8be4db";
         private static string tokenAddress = "0xb1359BD4Ad177b8E99C18914c5C8b65e3c80c89A";
@@ -69,6 +75,33 @@ namespace BlockStorm.Samples
             //await Subscriptions.GetSyncReserve_Observable_Subscription();
             //await GetResult();
             //var account = new Nethereum.Web3.Accounts.Account(pk);
+
+            /*部署Assistant合约
+            var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
+            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            var controllerOwnerPK = Config.GetControllerOwnerPK(chainID.ToString());
+            var controllerOwner = new Web3Accounts.Account(controllerOwnerPK);
+            var web3ForControllerOwner = new Web3(controllerOwner, httpURL);
+            var deployerContractHandler = web3ForControllerOwner.Eth.GetContractHandler(deployerCreate2);
+            string salt = "1";
+            var deployContractFunction = new Depl0yContract93258Function
+            {
+                Amount = 0,
+                Salt = salt.HexToByteArray(),
+                Bytecode = AssistantDeployment.BYTECODE.HexToByteArray()
+            };
+            Console.WriteLine("正在部署合约");
+            var depl0yContract93258FunctionTxnReceipt = await deployerContractHandler.SendRequestAndWaitForReceiptAsync(deployContractFunction);
+            if (depl0yContract93258FunctionTxnReceipt.Succeeded())
+            {
+                Console.WriteLine($"合约部署成功 {depl0yContract93258FunctionTxnReceipt.To}");
+            }
+            else
+            {
+                Console.WriteLine("合约部署失败");
+            }
+            //上述程序最终部署合约地址0x5EC4707379C2E507246AbB5A267439dcD9738F18
+            */
 
             /*回收trader资金
             var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
@@ -183,12 +216,12 @@ namespace BlockStorm.Samples
             //Console.WriteLine(result);
             //Console.ReadLine();
 
-            string plainText = "";
-            var cipher = Crypto.RST_AesEncrypt_Base64(plainText);
-            var decipher = Crypto.RST_AesDecrypt_Base64(cipher);
-            Console.WriteLine($"明文: {plainText}");
-            Console.WriteLine($"密文: {cipher}");
-            Console.WriteLine($"解文: {decipher}");
+            //string plainText = "";
+            //var cipher = Crypto.RST_AesEncrypt_Base64(plainText);
+            //var decipher = Crypto.RST_AesDecrypt_Base64(cipher);
+            //Console.WriteLine($"明文: {plainText}");
+            //Console.WriteLine($"密文: {cipher}");
+            //Console.WriteLine($"解文: {decipher}");
             ////Console.ReadLine();
             ///
 
