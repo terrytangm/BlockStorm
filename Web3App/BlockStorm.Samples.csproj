@@ -9,13 +9,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nethereum.Geth" Version="4.15.2" />
+    <PackageReference Include="Nethereum.Geth" Version="4.17.1" />
     <PackageReference Include="Nethereum.HdWallet" Version="4.15.2" />
     <PackageReference Include="Nethereum.JsonRpc.IpcClient" Version="4.15.2" />
     <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="4.15.2" />
-    <PackageReference Include="Nethereum.RPC" Version="4.15.2" />
+    <PackageReference Include="Nethereum.Quorum" Version="4.17.1" />
+    <PackageReference Include="Nethereum.RPC" Version="4.17.1" />
+    <PackageReference Include="Nethereum.RPC.Extensions" Version="4.17.1" />
     <PackageReference Include="Nethereum.RPC.Reactive" Version="4.15.2" />
-    <PackageReference Include="Nethereum.Web3" Version="4.15.2" />
+    <PackageReference Include="Nethereum.Web3" Version="4.17.1" />
   </ItemGroup>
 
   <ItemGroup>

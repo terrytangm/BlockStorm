@@ -4,6 +4,10 @@ using BlockStorm.Samples.Contracts.UniswapV2Factory;
 using BlockStorm.Samples.Contracts.UniswapV2Pair;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.JsonRpc.IpcClient;
+using Nethereum.JsonRpc.Client;
+using Nethereum.RPC;
+using Nethereum.Quorum;
+using Nethereum.RPC.Accounts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
 using Web3Accounts=Nethereum.Web3.Accounts;
@@ -29,9 +33,36 @@ using Nethereum.Model;
 using System;
 using BlockStorm.NethereumModule.Contracts.Assistant;
 using Nethereum.Signer;
+using Nethereum.RPC.Extensions.DevTools.Hardhat;
+using Nethereum.HdWallet;
+using Nethereum.Web3.Accounts.Managed;
+using NBitcoin.RPC;
+using Microsoft.Identity.Client;
+using Nethereum.RPC.NonceServices;
+using Nethereum.RPC.AccountSigning;
+using Newtonsoft.Json.Linq;
 
 namespace BlockStorm.Samples
 {
+
+
+    public class ImpersonatedAccount : Nethereum.RPC.Accounts.IAccount
+    {
+        public ImpersonatedAccount(string accountAddress)
+        {
+            Address = accountAddress;
+        }
+
+        public string Address { get; protected set; }
+
+        public ITransactionManager TransactionManager { get; protected set; }
+
+        public INonceService NonceService { get; set; }
+
+        public IAccountSigningService AccountSigningService { get; private set; }
+
+    }
+
     class Program
     {
         private static string ipc_path = "E:\\ETHNode\\Nethermind\\ipc.cfg";
@@ -55,7 +86,7 @@ namespace BlockStorm.Samples
         private static string deployerCreate2 = "0x589720882ee47dD6c54E2C1f9a63E372d9A4c8C1";
         private static string mevBotAddress = "0x6b75d8AF000000e20B7a7DDf000Ba900b4009A80";
         private static string scamTokenAddress = "0xb3003f00435dc660074cc2945e54e1effc8be4db";
-        private static string tokenAddress = "0xb1359BD4Ad177b8E99C18914c5C8b65e3c80c89A";
+        private static string tokenAddress = "0x75c33efc17c3f2449c4df2bc4356aab2c9b70193";
         static async Task Main(string[] args)
         {
             //GetAccountBalance(myWalletAddress).Wait();
@@ -193,14 +224,17 @@ namespace BlockStorm.Samples
 
 
             //ContractHandler ch = web3.Eth.contrac
-
-
-            //for (int i = 0; i < 50; i++)
+            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            //var web3 = new Web3(httpURL);
+            //for (int i = 0; i < 10; i++)
             //{
-            //    HexBigInteger position = new(BigInteger.Zero + i);
-            //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
+            //    HexBigInteger position1 = new(BigInteger.Zero + i);
+            //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position1);
             //    Output.WriteLine($"{i}:  {code}");
             //}
+            //var position = new HexBigInteger("0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0");
+            //string code1 = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
+            //Output.WriteLine($"{code1}");
             //Console.ReadLine();
 
             //string tokenA = "0x9359500B557f77010086d16CBA9Fd48b7368045c";
@@ -326,7 +360,77 @@ namespace BlockStorm.Samples
             //    context.Accounts.Add(account);
             //    context.SaveChanges();
             //}
+            //var testChainName = Config.GetValueByKey("TestChainConfig");
+            //var testHttpURL = Config.ConfigInfo((ChainConfigName)Enum.Parse(typeof(ChainConfigName), testChainName), ChainConfigPart.HttpURL);
+            var testHttpURL = "HTTP://127.0.0.1:8555";
+            var client = new RpcClient(new Uri(testHttpURL));
+            //var addressToImpersonate = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23"; // 您想冒充的地址
+            //var addressToImpersonate = "0x377De59906e38B9DDb6372B95B9454bc1563E18c";
+            var addressToSend = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23";
+            //var tokenContract = "0xff6fa06a7cf96703c6602aff4a1bb27921185f6b";
+            //var impersonatedAccount = new UnlockedAccount(addressToImpersonate);
+            //var web3 = new Web3(impersonatedAccount, client);
+            var ganacheTestAccPK = "0x0376e2031176713d3c35fcda3c81578023c846cb7cbf3943d843c9421217f170";
+            var account = new Web3Accounts.Account(ganacheTestAccPK);
+            var web3 = new Web3(account, client);
+            var chainID = await web3.Eth.ChainId.SendRequestAsync();
+            var blockNumber = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
+            var coinbase = await web3.Eth.CoinBase.SendRequestAsync();
+            Console.WriteLine($"Block Number: {blockNumber}");
+            Console.WriteLine($"Coinbase: {coinbase}");
+            Console.WriteLine($"Chain ID: {chainID}");
 
+            var setCoinbase = new HardhatSetCoinbase(web3.Client);
+            await setCoinbase.SendRequestAsync(addressToSend);
+
+            //var txn = await web3.Eth.GetEtherTransferService().TransferEtherAndWaitForReceiptAsync(addressToSend, 0.1m);
+            //if (txn.Succeeded())
+            //{
+            //    Console.WriteLine($"从{account.Address}向{addressToSend}转账0.1ETH成功。");
+            //}
+            //var wrappedNativeAddr = Config.GetWrappedNativeAddress("1");
+            //var contractHandler = web3.Eth.GetContractHandler(wrappedNativeAddr);
+            //var depositFunction = new DepositFunction
+            //{
+            //    AmountToSend = Web3.Convert.ToWei(0.1m)
+            //};
+            //var depositFunctionTxnReceipt = await contractHandler.SendRequestAndWaitForReceiptAsync<DepositFunction>(depositFunction);
+            //if (depositFunctionTxnReceipt.Succeeded())
+            //{
+            //    Console.WriteLine($"从{account.Address}向WETH转账0.1ETH成功。");
+            //}
+
+            //blockNumber = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
+            //coinbase = await web3.Eth.CoinBase.SendRequestAsync();
+            //Console.WriteLine($"Block Number: {blockNumber}");
+            //Console.WriteLine($"Coinbase: {coinbase}");
+
+            //var impersonateAccountService = new HardhatImpersonateAccount(web3.Client);
+            //await impersonateAccountService.SendRequestAsync(addressToImpersonate);
+            //var tokenContractHandler = web3.Eth.GetContractHandler(tokenContract);
+
+            //var balanceOfFunction = new NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction
+            //{
+            //    HolderAddress = addressToImpersonate
+            //};
+            //var balanceOfFunctionReturn = await tokenContractHandler.QueryAsync<NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction, BigInteger>(balanceOfFunction);
+            //var transferFunction = new NethereumModule.Contracts.UniswapV2ERC20.TransferFunction
+            //{
+            //    To = addressToSend,
+            //    Value = balanceOfFunctionReturn / 2
+            //};
+            //var transferFunctionTxnReceipt = await tokenContractHandler.SendRequestAndWaitForReceiptAsync(transferFunction);
+
+            //balanceOfFunctionReturn = await tokenContractHandler.QueryAsync<NethereumModule.Contracts.UniswapV2ERC20.BalanceOfFunction, BigInteger>(balanceOfFunction);
+
+            //var balbefore = await web3.Eth.GetBalance.SendRequestAsync(addressToImpersonate);
+            //var transferService = web3.Eth.GetEtherTransferService();
+            //var amountToSendDecimal = Web3.Convert.FromWei(balbefore.Value / 300);
+            //var gasprice = await web3.Eth.GasPrice.SendRequestAsync();
+            //var estimatedGas = await transferService.EstimateGasAsync(addressToSend, amountToSendDecimal);
+            //var gasTotal = Web3.Convert.FromWei(gasprice * estimatedGas);
+            //var txn = await transferService.TransferEtherAndWaitForReceiptAsync(addressToSend, amountToSendDecimal);
+            //var balafter = await web3.Eth.GetBalance.SendRequestAsync(addressToImpersonate);
 
 
 

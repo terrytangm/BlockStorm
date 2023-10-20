@@ -129,7 +129,7 @@ namespace BlockStorm.Infinity.ClosingDoor
                 BigInteger tokenInAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount1In : decodedSwapEvent.Event.Amount0In;
                 BigInteger wrappedNativeOutAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount0Out : decodedSwapEvent.Event.Amount1Out;
                 BigInteger tokenOutAmt = isToken0WrappedNative ? decodedSwapEvent.Event.Amount1Out : decodedSwapEvent.Event.Amount0Out;
-                if (wrappedNativeInAmt <= BigInteger.Pow(10, 16) || tokenOutAmt == BigInteger.Zero)
+                if (wrappedNativeInAmt < BigInteger.Pow(10, 16) / 2 || tokenOutAmt == BigInteger.Zero)
                 {
                     Output.WriteLine("非买入操作或买入金额太小，略过。");
                     logProcessFlag = false;
