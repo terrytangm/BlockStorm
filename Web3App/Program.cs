@@ -131,8 +131,9 @@ namespace BlockStorm.Samples
             {
                 Console.WriteLine("合约部署失败");
             }
-            //上述程序最终部署合约地址0x5EC4707379C2E507246AbB5A267439dcD9738F18
             */
+            //上述程序最终部署合约地址0x8BAdF374E4920CCbdfCDE5B4e6a2a75eF0d1B000
+
 
             /*回收trader资金
             var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
@@ -364,13 +365,13 @@ namespace BlockStorm.Samples
             //var testHttpURL = Config.ConfigInfo((ChainConfigName)Enum.Parse(typeof(ChainConfigName), testChainName), ChainConfigPart.HttpURL);
             var testHttpURL = "HTTP://127.0.0.1:8555";
             var client = new RpcClient(new Uri(testHttpURL));
-            //var addressToImpersonate = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23"; // 您想冒充的地址
-            //var addressToImpersonate = "0x377De59906e38B9DDb6372B95B9454bc1563E18c";
-            var addressToSend = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23";
-            //var tokenContract = "0xff6fa06a7cf96703c6602aff4a1bb27921185f6b";
-            //var impersonatedAccount = new UnlockedAccount(addressToImpersonate);
-            //var web3 = new Web3(impersonatedAccount, client);
-            var ganacheTestAccPK = "0x0376e2031176713d3c35fcda3c81578023c846cb7cbf3943d843c9421217f170";
+            ////var addressToImpersonate = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23"; // 您想冒充的地址
+            ////var addressToImpersonate = "0x377De59906e38B9DDb6372B95B9454bc1563E18c";
+            //var addressToSend = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23";
+            ////var tokenContract = "0xff6fa06a7cf96703c6602aff4a1bb27921185f6b";
+            ////var impersonatedAccount = new UnlockedAccount(addressToImpersonate);
+            ////var web3 = new Web3(impersonatedAccount, client);
+            var ganacheTestAccPK = "0x0ce116d5e99badd90bb7c38bdad6f3a3c5b4b99fb3daf61e9b3aa3fd83be32c8";
             var account = new Web3Accounts.Account(ganacheTestAccPK);
             var web3 = new Web3(account, client);
             var chainID = await web3.Eth.ChainId.SendRequestAsync();
@@ -380,8 +381,8 @@ namespace BlockStorm.Samples
             Console.WriteLine($"Coinbase: {coinbase}");
             Console.WriteLine($"Chain ID: {chainID}");
 
-            var setCoinbase = new HardhatSetCoinbase(web3.Client);
-            await setCoinbase.SendRequestAsync(addressToSend);
+            //var setCoinbase = new HardhatSetCoinbase(web3.Client);
+            //await setCoinbase.SendRequestAsync(addressToSend);
 
             //var txn = await web3.Eth.GetEtherTransferService().TransferEtherAndWaitForReceiptAsync(addressToSend, 0.1m);
             //if (txn.Succeeded())
