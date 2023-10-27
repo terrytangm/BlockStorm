@@ -945,6 +945,9 @@ namespace BlockStorm.Infinity.CampaignManager
                 //var transferEventOutput = addLiquidityFunctionTxnReceipt.DecodeAllEvents<NethereumModule.Contracts.UniswapV2Pair.TransferEventDTO>();
                 wethBalances[pairAddr] = Web3.Convert.FromWei(amountWETHInWei);
                 lblMessage.Text = $"部署者向Router的Add Liquidity操作成功，共获得{lpTokenInHex.Value}LpToken。现在向PinkLock02提交锁定Lp Token。首先由部署者Approve PinkLock02操作Pair的LpToken";
+                campaign.LpBlock = (long?)addLiquidityFunctionTxnReceipt.BlockNumber.Value;
+                context.Update(campaign);
+                context.SaveChanges();
             }
             else
             {
@@ -1016,28 +1019,43 @@ namespace BlockStorm.Infinity.CampaignManager
                 return;
             }
             // 打开Console关门程序
-            string closeDoorAppPath = Config.GetValueByKey("CloseDoorAppPath");
-            var arguments = new List<string>
-            {
-                tokenAddr,
-                doorCloser.PrivateKey,
-                token.FuncSig
-            };
-            Process.Start(closeDoorAppPath, arguments);
-            
+            //string closeDoorAppPath = Config.GetValueByKey("CloseDoorAppPath");
+            //var arguments = new List<string>
+            //{
+            //    tokenAddr,
+            //    doorCloser.PrivateKey,
+            //    token.FuncSig
+            //};
+            //Process.Start(closeDoorAppPath, arguments);
 
-
-            //Thread thread = new Thread(threadPro);
-            //thread.Start();
+            var thread = new Thread(ThreadPro);
+            thread.Start();
         }
 
         private void ShowClosingDoorForm()
         {
-            var frm = new ClosingDoor();
+            var frm = new ClosingDoor
+            {
+                campaignID = campaign.Id,
+                chainID = (long)chainID,
+                network = chainName,
+                tokenAddress = tokenAddr,
+                tokenName = token.Name,
+                WETH = wrappedNativeAddr,
+                pairAddress = pairAddr,
+                //pairAddress = "0xf0D86adeA54Ee8c498f6D3e803a5D927d68831fA",
+                closerAddress = doorCloser.Address,
+                controllerAddress = controllerAddr,
+                controllerOwner = controllerOwner,
+                withdrawerAddress = withdrawer.Address,
+                uniswapRouterAddress = routerAddr,
+                relayerAddress = RelayerAddr,
+                httpURL = httpURL
+            };
             frm.Show();
         }
 
-        private void threadPro()
+        private void ThreadPro()
         {
             var methodInvoker = new MethodInvoker(ShowClosingDoorForm);
             BeginInvoke(methodInvoker);

@@ -42,6 +42,8 @@ public partial class BlockchainContext : DbContext
 
     public virtual DbSet<Token> Tokens { get; set; }
 
+    public virtual DbSet<ClosingDoorRecord> ClosingDoorRecords { get; set; }
+
     public virtual DbSet<TokensAppearTimesInPair> TokensAppearTimesInPairs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -202,6 +204,24 @@ public partial class BlockchainContext : DbContext
             entity.Property(e => e.Currency)
                 .HasMaxLength(10)
                 .IsFixedLength();
+        });
+
+        modelBuilder.Entity<ClosingDoorRecord>(entity =>
+        {
+            entity.ToTable("ClosingDoorRecord");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CamapaignId).HasColumnName("CamapaignID");
+            entity.Property(e => e.Ethamount)
+                .HasColumnType("decimal(18, 6)")
+                .HasColumnName("ETHAmount");
+            entity.Property(e => e.TokenAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.TraderAddress)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.TransactionHash)
+                .HasMaxLength(200)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<Dex>(entity =>

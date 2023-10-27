@@ -33,6 +33,10 @@ public partial class Campaign
 
     public DateTime? LastUpdate { get; set; }
 
+    public long? LpBlock { get; set; }
+
+    public long? LastProcessedBlock { get; set; }
+
     public virtual ICollection<CampaignAccount> CampaignAccounts { get; set; } = new List<CampaignAccount>();
 
     public virtual Chain Chain { get; set; } = null!;

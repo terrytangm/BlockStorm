@@ -1,20 +1,317 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using BlockStorm.EFModels;
+using BlockStorm.NethereumModule;
+using BlockStorm.NethereumModule.Contracts.Relayer;
+using BlockStorm.NethereumModule.Contracts.UniswapV2Pair;
+using Microsoft.EntityFrameworkCore;
+using NBitcoin.Secp256k1;
+using Nethereum.BlockchainProcessing.ProgressRepositories;
+using Nethereum.Contracts;
+using Nethereum.Hex.HexTypes;
+using Nethereum.Util;
+using Nethereum.Web3;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Numerics;
 
 namespace BlockStorm.Infinity.CampaignManager
 {
     public partial class ClosingDoor : Form
     {
-        public ClosingDoor()
+        public string tokenAddress;
+        public string tokenName;
+        public string WETH;
+        public string pairAddress;
+        public string closerAddress;
+        public string relayerAddress;
+        public string controllerAddress;
+
+        public string withdrawerAddress;
+        public string uniswapRouterAddress;
+        public Nethereum.Web3.Accounts.Account controllerOwner;
+        public long campaignID;
+        public long chainID;
+        public string network;
+        public string httpURL;
+
+        private static readonly string universalRouterAddr = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
+        private static readonly string bananaGunAddr = "0xdB5889E35e379Ef0498aaE126fc2CCE1fbD23216";
+        private static readonly string maestroAddr = "0x80a64c6D7f12C47B7c66c5B4E20E72bc1FCd5d9e";
+        private BlockchainContext context1;
+        private BlockchainContext context2;
+        private Campaign? campaign;
+        private string lineSeperator;
+        private CancellationTokenSource cts;
+        private bool isToken0WrappedNative;
+        private Web3 web3;
+        private List<string> ExcludedAddresses;
+        private static readonly object lockObject1 = new();
+        private static readonly object lockObject2 = new();
+        private static readonly object lockObject3 = new();
+        private SemaphoreSlim slimLock;
+        private bool needRefreshClosingDoorRecords = true;
+        private System.Timers.Timer refreshClosingRecordtimer;  
+
+        public ClosingDoor() => InitializeComponent();
+
+        private void ClosingDoor_Load(object sender, EventArgs e)
         {
-            InitializeComponent();
+            lblCampaignID.Text = $"Campaign ID: {campaignID}";
+            lblChainID.Text = $"Chain ID: {chainID}";
+            lblNetwork.Text = $"网络: {network}";
+            txtToken.Text = tokenAddress;
+            txtTokenName.Text = tokenName;
+            txtWETH.Text = WETH;
+            txtPair.Text = pairAddress;
+            txtCloser.Text = closerAddress;
+            lineSeperator = new string('*', 100);
+            isToken0WrappedNative = UniswapV2ContractsReader.IsAddressSmaller(WETH, tokenAddress);
+            web3 = new Web3(controllerOwner, httpURL);
+            slimLock = new SemaphoreSlim(1, 1);
+
+
+            context1 = new BlockchainContext();
+            context2 = new BlockchainContext();
+            context1.ChangeTracker.DetectedEntityChanges += ChangeTracker_DetectedEntityChanges;
+            refreshClosingRecordtimer = new System.Timers.Timer
+            {
+                Interval = 2000
+            };
+            refreshClosingRecordtimer.Elapsed += RefreshClosingRecordtimer_Elapsed;
+            refreshClosingRecordtimer.Start();
+            campaign = context1.Campaigns.FirstOrDefault(c => c.Id == campaignID);
+            if (campaign == null)
+            {
+                MessageBox.Show("无法找到对应Campaign ID的Campaign!");
+                this.Close();
+            }
+
+            InitExcludedAddresses();
+            long? startBlock = campaign.LpBlock;
+            StartFilteringSwapLog(startBlock);
         }
+
+        private void RefreshClosingRecordtimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            lock (lockObject3)
+            {
+                if (needRefreshClosingDoorRecords)
+                {
+                    dgvClosingRecords.DataSource = context2.ClosingDoorRecords
+                        .Where(c => c.CamapaignId == campaignID)
+                        .Select(c => new DgvClosingDoorRecord(c.TraderAddress.Substring(c.TraderAddress.Length - 6, 6), Math.Round(c.Ethamount.Value, 4), c.BlockNumber, c.Closed)).ToList();
+                    needRefreshClosingDoorRecords = false;
+                }
+            }
+        }
+
+        private void InitExcludedAddresses()
+        {
+            ExcludedAddresses = context1.Accounts.Select(c => c.Address).ToList();
+            ExcludedAddresses.Add(pairAddress);
+            ExcludedAddresses.Add(tokenAddress);
+            ExcludedAddresses.Add(WETH);
+            ExcludedAddresses.Add(closerAddress);
+            ExcludedAddresses.Add(universalRouterAddr);
+            ExcludedAddresses.Add(bananaGunAddr);
+            ExcludedAddresses.Add(maestroAddr);
+            ExcludedAddresses.Add(controllerAddress);
+            ExcludedAddresses.Add(controllerOwner.Address);
+            ExcludedAddresses.Add(withdrawerAddress);
+            ExcludedAddresses.Add(uniswapRouterAddress);
+        }
+
+        private async void StartFilteringSwapLog(long? startBlock)
+        {
+            if (!startBlock.HasValue)
+            {
+
+                var latestBlock = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
+                startBlock = (long)latestBlock.Value;
+            }
+
+            var sqlBlockprogressRepo = new SqlBlockChainProgressRepository(campaignID);
+            var processor = web3.Processing.Logs.CreateProcessorForContract<SwapEventDTO>(
+            pairAddress,
+            s => ProcessSwapLog(s),
+            1,
+            null,
+            sqlBlockprogressRepo);
+
+            cts = new CancellationTokenSource();
+            try
+            {
+                await processor.ExecuteAsync(
+                    cancellationToken: cts.Token,
+                    startAtBlockNumberIfNotProcessed: new BigInteger(startBlock.Value - 1));
+            }
+            catch (OperationCanceledException)
+            {
+                this.Dispose();
+            }
+        }
+
+        private async void ProcessSwapLog(EventLog<SwapEventDTO> swapLog)
+        {
+            await slimLock.WaitAsync();
+            try
+            {
+                txtInfo.AppendText($"在区块号{swapLog.Log.BlockNumber}接收到1个SwapLog。To: {swapLog.Event.To}{Environment.NewLine}");
+
+                BigInteger wrappedNativeInAmt = isToken0WrappedNative ? swapLog.Event.Amount0In : swapLog.Event.Amount1In;
+                BigInteger tokenInAmt = isToken0WrappedNative ? swapLog.Event.Amount1In : swapLog.Event.Amount0In;
+                BigInteger wrappedNativeOutAmt = isToken0WrappedNative ? swapLog.Event.Amount0Out : swapLog.Event.Amount1Out;
+                BigInteger tokenOutAmt = isToken0WrappedNative ? swapLog.Event.Amount1Out : swapLog.Event.Amount0Out;
+
+                var txnReceipt = await web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(swapLog.Log.TransactionHash).ConfigureAwait(false);
+                if (txnReceipt == null)
+                {
+                    Thread.Sleep(2000);
+                    txnReceipt = await web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(swapLog.Log.TransactionHash).ConfigureAwait(false);
+                }
+                var ethAmount = Web3.Convert.FromWei(wrappedNativeInAmt - wrappedNativeOutAmt);
+                var tokenAmount = Web3.Convert.FromWei(tokenOutAmt - tokenInAmt);
+                if (ethAmount > 0) // 买入操作
+                {
+                    txtInfo.AppendText($"买入操作：{ethAmount:#0.0000}ETH {Environment.NewLine}");
+                    //以下判断一下swap事件的to，是不是erc20代币转移路径的终点
+                    var transferEvents = txnReceipt.DecodeAllEvents<NethereumModule.Contracts.UniswapV2ERC20.TransferEventDTO>();
+                    var transferEventForToken = transferEvents.Where(t => t.Log.Address.IsTheSameAddress(tokenAddress)).ToList();
+                    var relatedAddresses = transferEventForToken.Select(t => t.Event.To).Union(transferEventForToken.Select(t => t.Event.From)).ToList();
+                    var addressesToCheck = relatedAddresses.Where(r => !IsExcluded(r)).ToList();
+                    if (addressesToCheck.Count > 0)
+                    {
+                        var batchQueryERC20TokenBalancesFunction = new BatchQueryERC20TokenBalancesFunction
+                        {
+                            Token = tokenAddress,
+                            Holders = addressesToCheck
+                        };
+                        var relayerHandler = web3.Eth.GetContractHandler(relayerAddress);
+                        var batchQueryERC20TokenBalancesFunctionReturn = await relayerHandler.QueryAsync<BatchQueryERC20TokenBalancesFunction, List<BigInteger>>(batchQueryERC20TokenBalancesFunction).ConfigureAwait(false);
+                        for (int i = 0; i < addressesToCheck.Count; i++)
+                        {
+                            if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
+                            {
+                                txtInfo.AppendText($"找到一个待关门地址{addressesToCheck[i]} {Environment.NewLine}");
+                                AddCloseDoorRecord(addressesToCheck[i], ethAmount, tokenAmount, swapLog.Log.BlockNumber, swapLog.Log.TransactionHash);
+                            }
+                        }
+                    }
+                    else //addressesToCheck.Count ==0
+                    {
+                        txtInfo.AppendText($"相关地址被排除 {Environment.NewLine}");
+                    }
+                }
+                else // 卖出操作
+                {
+                    txtInfo.AppendText($"卖出操作：{ethAmount:#0.0000}ETH {Environment.NewLine}");
+                    if (!IsExcluded(swapLog.Event.To))
+                    {
+                        AddCloseDoorRecord(swapLog.Event.To, ethAmount, tokenAmount, swapLog.Log.BlockNumber, swapLog.Log.TransactionHash);
+                    }
+                    else
+                    {
+                        txtInfo.AppendText($"相关地址被排除 {Environment.NewLine}");
+                    }
+                }
+
+                txtInfo.AppendText($"{lineSeperator} {Environment.NewLine}");
+            }
+            finally
+            {
+                slimLock.Release();
+            }
+        }
+
+        private void AddCloseDoorRecord(string traderAddress, decimal ethAmount, decimal tokenAmount, HexBigInteger blockNumber, string transactionHash)
+        {
+            lock (lockObject1)
+            {
+                var closeDoorRecords = context1.ClosingDoorRecords.Where(c => c.CamapaignId == campaignID).ToList();
+                if (closeDoorRecords != null && closeDoorRecords.Any(c => c.TraderAddress == traderAddress && c.TransactionHash == transactionHash)) return;
+                var closed = false;
+                if (closeDoorRecords != null && closeDoorRecords.Any(c => c.TraderAddress == traderAddress))
+                {
+                    closed = closeDoorRecords.First(c => c.TraderAddress == traderAddress).Closed;
+                }
+                var record = new ClosingDoorRecord
+                {
+                    TraderAddress = traderAddress,
+                    TransactionHash = transactionHash,
+                    Ethamount = ethAmount,
+                    TokenAmount = tokenAmount,
+                    Closed = closed,
+                    CamapaignId = campaignID,
+                    BlockNumber = (long?)blockNumber.Value
+                };
+                context1.ClosingDoorRecords.Add(record);
+                context1.SaveChanges();
+            }
+        }
+
+        private void ChangeTracker_DetectedEntityChanges(object? sender, Microsoft.EntityFrameworkCore.ChangeTracking.DetectedEntityChangesEventArgs e)
+        {
+            lock (lockObject2)
+            {
+                if (e.Entry.Entity is ClosingDoorRecord)
+                {
+                    needRefreshClosingDoorRecords = true;
+                }
+            }
+
+        }
+
+        private bool IsExcluded(string addr)
+        {
+            return ExcludedAddresses.Any(e => e.IsTheSameAddress(addr));
+        }
+
+        private void ClosingDoor_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            cts?.Cancel();
+        }
+    }
+
+    public class SqlBlockChainProgressRepository : IBlockProgressRepository
+    {
+        readonly BlockchainContext blockchainContext;
+        readonly long campaignID;
+        public SqlBlockChainProgressRepository(long _campaignID)
+        {
+            campaignID = _campaignID;
+            blockchainContext = new BlockchainContext();
+        }
+
+        public Task<BigInteger?> GetLastBlockNumberProcessedAsync()
+        {
+            var campaign = blockchainContext.Campaigns.FirstOrDefault(c => c.Id == campaignID);
+            BigInteger? lastProcessedBlockNumber = null;
+            if (campaign != null && campaign.LastProcessedBlock.HasValue)
+            {
+                lastProcessedBlockNumber = campaign.LastProcessedBlock.Value;
+            }
+            return Task.FromResult(lastProcessedBlockNumber);
+        }
+
+        public Task UpsertProgressAsync(BigInteger blockNumber)
+        {
+            blockchainContext.Campaigns.Where(c => c.Id == campaignID).ExecuteUpdate(c => c.SetProperty(cp => cp.LastProcessedBlock, cp => (long)blockNumber));
+            return Task.FromResult(0);
+        }
+    }
+
+    internal class DgvClosingDoorRecord
+    {
+        public string? TraderAddress { get; }
+        public decimal? EthAmount { get; }
+        public long? BlockNumber { get; }
+        public bool Closed { get; }
+
+        public DgvClosingDoorRecord(string? traderAddress, decimal? ethAmount, long? blockNumber, bool closed)
+        {
+            TraderAddress = traderAddress;
+            EthAmount = ethAmount;
+            BlockNumber = blockNumber;
+            Closed = closed;
+        }
+
     }
 }
