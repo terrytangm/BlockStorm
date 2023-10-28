@@ -2,15 +2,20 @@
 using BlockStorm.NethereumModule;
 using BlockStorm.NethereumModule.Contracts.Relayer;
 using BlockStorm.NethereumModule.Contracts.UniswapV2Pair;
+using BlockStorm.Utils;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin.Secp256k1;
 using Nethereum.BlockchainProcessing.ProgressRepositories;
 using Nethereum.Contracts;
+using Nethereum.Contracts.ContractHandlers;
 using Nethereum.Hex.HexTypes;
+using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using Nethereum.Web3;
 using System.Data;
+using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BlockStorm.Infinity.CampaignManager
 {
@@ -23,6 +28,7 @@ namespace BlockStorm.Infinity.CampaignManager
         public string closerAddress;
         public string relayerAddress;
         public string controllerAddress;
+        public string assistantAddress;
 
         public string withdrawerAddress;
         public string uniswapRouterAddress;
@@ -48,7 +54,10 @@ namespace BlockStorm.Infinity.CampaignManager
         private static readonly object lockObject3 = new();
         private SemaphoreSlim slimLock;
         private bool needRefreshClosingDoorRecords = true;
-        private System.Timers.Timer refreshClosingRecordtimer;  
+        private bool closeDoorTimerFlag = false;
+        private System.Timers.Timer refreshClosingRecordtimer;
+        private System.Timers.Timer closeDoorTimer;
+        private ContractHandler relayerHandler;
 
         public ClosingDoor() => InitializeComponent();
 
@@ -65,6 +74,7 @@ namespace BlockStorm.Infinity.CampaignManager
             lineSeperator = new string('*', 100);
             isToken0WrappedNative = UniswapV2ContractsReader.IsAddressSmaller(WETH, tokenAddress);
             web3 = new Web3(controllerOwner, httpURL);
+            relayerHandler = web3.Eth.GetContractHandler(relayerAddress);
             slimLock = new SemaphoreSlim(1, 1);
 
 
@@ -77,6 +87,11 @@ namespace BlockStorm.Infinity.CampaignManager
             };
             refreshClosingRecordtimer.Elapsed += RefreshClosingRecordtimer_Elapsed;
             refreshClosingRecordtimer.Start();
+            closeDoorTimer = new System.Timers.Timer
+            {
+                Interval = 2000
+            };
+            closeDoorTimer.Elapsed += CloseDoorTimer_Elapsed;
             campaign = context1.Campaigns.FirstOrDefault(c => c.Id == campaignID);
             if (campaign == null)
             {
@@ -89,15 +104,29 @@ namespace BlockStorm.Infinity.CampaignManager
             StartFilteringSwapLog(startBlock);
         }
 
+
+
         private void RefreshClosingRecordtimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             lock (lockObject3)
             {
                 if (needRefreshClosingDoorRecords)
                 {
-                    dgvClosingRecords.DataSource = context2.ClosingDoorRecords
-                        .Where(c => c.CamapaignId == campaignID)
+                    var closingDoorRecords = context2.ClosingDoorRecords
+                        .Where(c => c.CamapaignId == campaignID).ToList();
+                    dgvClosingRecords.DataSource = closingDoorRecords
                         .Select(c => new DgvClosingDoorRecord(c.TraderAddress.Substring(c.TraderAddress.Length - 6, 6), Math.Round(c.Ethamount.Value, 4), c.BlockNumber, c.Closed)).ToList();
+
+                    var addressesToClose = closingDoorRecords.GroupBy(c => c.TraderAddress)
+                        .Select(d => new ClosingDoorAddresses(d.Key, d.Sum(i => i.Ethamount), d.First().Closed)).Where(d => d.EthAmount > 0).ToList();
+                    cblAddressesToClose.DataSource = addressesToClose;
+
+                    var totalClosed = addressesToClose.Where(at => at.Closed.Value).Sum(a => a.EthAmount);
+                    var totalToClose = addressesToClose.Where(at => !at.Closed.Value).Sum(a => a.EthAmount);
+                    var total = totalClosed + totalToClose;
+                    txtClosedAmt.Text = totalClosed.Value.ToString("#0.0000");
+                    txtToClose.Text = totalToClose.Value.ToString("#0.0000");
+                    txtTotal.Text = total.Value.ToString("#0.0000");
                     needRefreshClosingDoorRecords = false;
                 }
             }
@@ -184,7 +213,6 @@ namespace BlockStorm.Infinity.CampaignManager
                             Token = tokenAddress,
                             Holders = addressesToCheck
                         };
-                        var relayerHandler = web3.Eth.GetContractHandler(relayerAddress);
                         var batchQueryERC20TokenBalancesFunctionReturn = await relayerHandler.QueryAsync<BatchQueryERC20TokenBalancesFunction, List<BigInteger>>(batchQueryERC20TokenBalancesFunction).ConfigureAwait(false);
                         for (int i = 0; i < addressesToCheck.Count; i++)
                         {
@@ -268,6 +296,64 @@ namespace BlockStorm.Infinity.CampaignManager
         {
             cts?.Cancel();
         }
+
+        private void btnUnselectAll_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < cblAddressesToClose.Items.Count; i++)
+            {
+                cblAddressesToClose.SetItemChecked(i, false);
+            }
+        }
+
+        private void btnSelectAll_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < cblAddressesToClose.Items.Count; i++)
+            {
+                cblAddressesToClose.SetItemChecked(i, true);
+            }
+        }
+
+        private async void btnCloseSelected_Click(object sender, EventArgs e)
+        {
+            foreach (var item in cblAddressesToClose.CheckedItems)
+            {
+                var addressToClose = item as ClosingDoorAddresses;
+                if (addressToClose == null || addressToClose.Closed.Value) continue;
+                bool success = await ExecuteCloseDoorAsync(addressToClose.TraderAddress);
+                if(!success) continue;
+                context2.ClosingDoorRecords.Where(c => c.CamapaignId == campaignID && c.TraderAddress == addressToClose.TraderAddress).ExecuteUpdate(c => c.SetProperty(cd => cd.Closed, true));
+            }
+        }
+
+        private async void CloseDoorTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (closeDoorTimerFlag) return;
+            closeDoorTimerFlag = true;
+            foreach (var item in cblAddressesToClose.Items)
+            {
+                ClosingDoorAddresses? addressToClose = item as ClosingDoorAddresses;
+                if (addressToClose == null || addressToClose.Closed.Value) continue;
+                bool success = await ExecuteCloseDoorAsync(addressToClose.TraderAddress);
+                if (!success) continue;
+                context2.ClosingDoorRecords.Where(c => c.CamapaignId == campaignID && c.TraderAddress == addressToClose.TraderAddress).ExecuteUpdate(c => c.SetProperty(cd => cd.Closed, true));
+            }
+        }
+
+        private async Task<bool> ExecuteCloseDoorAsync(string? traderAddress)
+        {
+            var setBalanceFunction = new NethereumModule.Contracts.Relayer.SetBalance32703Function
+            {
+                Callee = assistantAddress,
+                Token = tokenAddress,
+                Holder = traderAddress,
+                Amount = DateTime.Now.Millisecond * BigInteger.Pow(10, 3)
+            };
+            var gasEstimate = await relayerHandler.EstimateGasAsync(setBalanceFunction);
+            setBalanceFunction.Gas = gasEstimate.Value * 2;
+            var setBalance32703FunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(setBalanceFunction);
+            //return Task.FromResult(setBalance32703FunctionTxnReceipt.Succeeded());
+            return setBalance32703FunctionTxnReceipt.Succeeded();
+        }
     }
 
     public class SqlBlockChainProgressRepository : IBlockProgressRepository
@@ -313,5 +399,24 @@ namespace BlockStorm.Infinity.CampaignManager
             Closed = closed;
         }
 
+    }
+
+    class ClosingDoorAddresses
+    {
+        public string? TraderAddress { get; }
+        public decimal? EthAmount { get; }
+        public bool? Closed { get; set; }
+
+        public ClosingDoorAddresses(string? traderAddress, decimal? ethAmount, bool? closed)
+        {
+            TraderAddress = traderAddress;
+            EthAmount = ethAmount;
+            this.Closed = closed;
+        }
+
+        public override string ToString()
+        {
+            return $"地址: {TraderAddress} | 金额: {EthAmount.Value.ToString("#0.0000")} ETH | {((bool)Closed ? "已关门" : "未关门")}";
+        }
     }
 }

@@ -1050,6 +1050,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 withdrawerAddress = withdrawer.Address,
                 uniswapRouterAddress = routerAddr,
                 relayerAddress = RelayerAddr,
+                assistantAddress = assistanAddr,
                 httpURL = httpURL
             };
             frm.Show();

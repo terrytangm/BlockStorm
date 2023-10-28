@@ -53,6 +53,10 @@
             lblToken = new Label();
             dgvClosingRecords = new DataGridView();
             gbAddressToClose = new GroupBox();
+            btnAutoClose = new Button();
+            btnCloseSelected = new Button();
+            btnUnselectAll = new Button();
+            btnSelectAll = new Button();
             cblAddressesToClose = new CheckedListBox();
             txtInfo = new TextBox();
             gbInfo.SuspendLayout();
@@ -285,28 +289,71 @@
             // 
             dgvClosingRecords.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dgvClosingRecords.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvClosingRecords.Location = new Point(5, 793);
+            dgvClosingRecords.Location = new Point(5, 776);
             dgvClosingRecords.Name = "dgvClosingRecords";
             dgvClosingRecords.RowTemplate.Height = 25;
-            dgvClosingRecords.Size = new Size(689, 394);
+            dgvClosingRecords.Size = new Size(689, 411);
             dgvClosingRecords.TabIndex = 4;
             // 
             // gbAddressToClose
             // 
+            gbAddressToClose.Controls.Add(btnAutoClose);
+            gbAddressToClose.Controls.Add(btnCloseSelected);
+            gbAddressToClose.Controls.Add(btnUnselectAll);
+            gbAddressToClose.Controls.Add(btnSelectAll);
             gbAddressToClose.Controls.Add(cblAddressesToClose);
-            gbAddressToClose.Location = new Point(3, 365);
+            gbAddressToClose.Location = new Point(3, 307);
             gbAddressToClose.Name = "gbAddressToClose";
-            gbAddressToClose.Size = new Size(691, 422);
+            gbAddressToClose.Size = new Size(691, 463);
             gbAddressToClose.TabIndex = 5;
             gbAddressToClose.TabStop = false;
             gbAddressToClose.Text = "待关门地址";
             // 
+            // btnAutoClose
+            // 
+            btnAutoClose.Location = new Point(601, 24);
+            btnAutoClose.Name = "btnAutoClose";
+            btnAutoClose.Size = new Size(75, 23);
+            btnAutoClose.TabIndex = 4;
+            btnAutoClose.Text = "自动关门";
+            btnAutoClose.UseVisualStyleBackColor = true;
+            // 
+            // btnCloseSelected
+            // 
+            btnCloseSelected.Location = new Point(132, 24);
+            btnCloseSelected.Name = "btnCloseSelected";
+            btnCloseSelected.Size = new Size(75, 23);
+            btnCloseSelected.TabIndex = 3;
+            btnCloseSelected.Text = "关门选中";
+            btnCloseSelected.UseVisualStyleBackColor = true;
+            btnCloseSelected.Click += btnCloseSelected_Click;
+            // 
+            // btnUnselectAll
+            // 
+            btnUnselectAll.Location = new Point(67, 24);
+            btnUnselectAll.Name = "btnUnselectAll";
+            btnUnselectAll.Size = new Size(59, 23);
+            btnUnselectAll.TabIndex = 2;
+            btnUnselectAll.Text = "全不选";
+            btnUnselectAll.UseVisualStyleBackColor = true;
+            btnUnselectAll.Click += btnUnselectAll_Click;
+            // 
+            // btnSelectAll
+            // 
+            btnSelectAll.Location = new Point(4, 24);
+            btnSelectAll.Name = "btnSelectAll";
+            btnSelectAll.Size = new Size(57, 23);
+            btnSelectAll.TabIndex = 1;
+            btnSelectAll.Text = "全选";
+            btnSelectAll.UseVisualStyleBackColor = true;
+            btnSelectAll.Click += btnSelectAll_Click;
+            // 
             // cblAddressesToClose
             // 
             cblAddressesToClose.FormattingEnabled = true;
-            cblAddressesToClose.Location = new Point(9, 22);
+            cblAddressesToClose.Location = new Point(0, 53);
             cblAddressesToClose.Name = "cblAddressesToClose";
-            cblAddressesToClose.Size = new Size(676, 382);
+            cblAddressesToClose.Size = new Size(676, 400);
             cblAddressesToClose.TabIndex = 0;
             // 
             // txtInfo
@@ -369,5 +416,9 @@
         private GroupBox gbAddressToClose;
         private CheckedListBox cblAddressesToClose;
         private TextBox txtInfo;
+        private Button btnUnselectAll;
+        private Button btnSelectAll;
+        private Button btnAutoClose;
+        private Button btnCloseSelected;
     }
 }
