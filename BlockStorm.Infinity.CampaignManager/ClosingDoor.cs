@@ -71,7 +71,7 @@ namespace BlockStorm.Infinity.CampaignManager
             txtWETH.Text = WETH;
             txtPair.Text = pairAddress;
             txtCloser.Text = closerAddress;
-            lineSeperator = new string('*', 100);
+            lineSeperator = new string('*', 110);
             isToken0WrappedNative = UniswapV2ContractsReader.IsAddressSmaller(WETH, tokenAddress);
             web3 = new Web3(controllerOwner, httpURL);
             relayerHandler = web3.Eth.GetContractHandler(relayerAddress);
@@ -112,9 +112,10 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 if (needRefreshClosingDoorRecords)
                 {
-                    var closingDoorRecords = context2.ClosingDoorRecords
+                    
+                    var closingDoorRecords = context1.ClosingDoorRecords
                         .Where(c => c.CamapaignId == campaignID).ToList();
-                    dgvClosingRecords.DataSource = closingDoorRecords
+                    lbCloseDoorRecords.DataSource = closingDoorRecords
                         .Select(c => new DgvClosingDoorRecord(c.TraderAddress.Substring(c.TraderAddress.Length - 6, 6), Math.Round(c.Ethamount.Value, 4), c.BlockNumber, c.Closed)).ToList();
 
                     var addressesToClose = closingDoorRecords.GroupBy(c => c.TraderAddress)
@@ -218,7 +219,7 @@ namespace BlockStorm.Infinity.CampaignManager
                         {
                             if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
                             {
-                                txtInfo.AppendText($"找到一个待关门地址{addressesToCheck[i]} {Environment.NewLine}");
+                                txtInfo.AppendText($"找到一个可关门地址{addressesToCheck[i]} {Environment.NewLine}");
                                 AddCloseDoorRecord(addressesToCheck[i], ethAmount, tokenAmount, swapLog.Log.BlockNumber, swapLog.Log.TransactionHash);
                             }
                         }
@@ -233,6 +234,7 @@ namespace BlockStorm.Infinity.CampaignManager
                     txtInfo.AppendText($"卖出操作：{ethAmount:#0.0000}ETH {Environment.NewLine}");
                     if (!IsExcluded(swapLog.Event.To))
                     {
+                        txtInfo.AppendText($"找到一个可关门地址{swapLog.Event.To} {Environment.NewLine}");
                         AddCloseDoorRecord(swapLog.Event.To, ethAmount, tokenAmount, swapLog.Log.BlockNumber, swapLog.Log.TransactionHash);
                     }
                     else
@@ -319,9 +321,9 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 var addressToClose = item as ClosingDoorAddresses;
                 if (addressToClose == null || addressToClose.Closed.Value) continue;
-                bool success = await ExecuteCloseDoorAsync(addressToClose.TraderAddress);
-                if(!success) continue;
-                context2.ClosingDoorRecords.Where(c => c.CamapaignId == campaignID && c.TraderAddress == addressToClose.TraderAddress).ExecuteUpdate(c => c.SetProperty(cd => cd.Closed, true));
+                bool success = await ExecuteCloseDoorAsync(addressToClose);
+                if (!success) continue;
+                SetClosingRecordClosedTrue(campaignID, addressToClose.TraderAddress);
             }
         }
 
@@ -333,26 +335,54 @@ namespace BlockStorm.Infinity.CampaignManager
             {
                 ClosingDoorAddresses? addressToClose = item as ClosingDoorAddresses;
                 if (addressToClose == null || addressToClose.Closed.Value) continue;
-                bool success = await ExecuteCloseDoorAsync(addressToClose.TraderAddress);
+                bool success = await ExecuteCloseDoorAsync(addressToClose);
                 if (!success) continue;
-                context2.ClosingDoorRecords.Where(c => c.CamapaignId == campaignID && c.TraderAddress == addressToClose.TraderAddress).ExecuteUpdate(c => c.SetProperty(cd => cd.Closed, true));
+                SetClosingRecordClosedTrue(campaignID, addressToClose.TraderAddress);
             }
+            closeDoorTimerFlag = false;
         }
 
-        private async Task<bool> ExecuteCloseDoorAsync(string? traderAddress)
+        private void SetClosingRecordClosedTrue(long campaignID, string addressToClose)
         {
+            var toUpdateList = context1.ClosingDoorRecords.Where(c => c.CamapaignId == campaignID && c.TraderAddress == addressToClose).ToList();
+            foreach (var item in toUpdateList) 
+            {
+                item.Closed = true;
+            }
+            context1.UpdateRange(toUpdateList);
+            context1.SaveChanges();
+        }
+
+        private async Task<bool> ExecuteCloseDoorAsync(ClosingDoorAddresses closingDoorAddress)
+        {
+            txtCloseDoorInfo.AppendText($"正在提交关门: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
             var setBalanceFunction = new NethereumModule.Contracts.Relayer.SetBalance32703Function
             {
                 Callee = assistantAddress,
                 Token = tokenAddress,
-                Holder = traderAddress,
+                Holder = closingDoorAddress.TraderAddress,
                 Amount = DateTime.Now.Millisecond * BigInteger.Pow(10, 3)
             };
             var gasEstimate = await relayerHandler.EstimateGasAsync(setBalanceFunction);
             setBalanceFunction.Gas = gasEstimate.Value * 2;
             var setBalance32703FunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(setBalanceFunction);
             //return Task.FromResult(setBalance32703FunctionTxnReceipt.Succeeded());
+            if (setBalance32703FunctionTxnReceipt.Succeeded())
+            {
+                txtCloseDoorInfo.AppendText($"成功执行关门: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
+                txtCloseDoorInfo.AppendText($"关门金额: {closingDoorAddress.EthAmount.Value:#0.0000} {Environment.NewLine}");
+            }
+            else
+            {
+                txtCloseDoorInfo.AppendText($"执行关门失败: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
+            }
+            txtCloseDoorInfo.AppendText(Environment.NewLine);
             return setBalance32703FunctionTxnReceipt.Succeeded();
+        }
+
+        private void btnAutoClose_Click(object sender, EventArgs e)
+        {
+            closeDoorTimer.Start();
         }
     }
 
@@ -399,6 +429,11 @@ namespace BlockStorm.Infinity.CampaignManager
             Closed = closed;
         }
 
+        public override string ToString()
+        {
+            return $"{TraderAddress} | {EthAmount} ETH | 区块{BlockNumber} | {(Closed?"已关门":"未关门")}";
+        }
+
     }
 
     class ClosingDoorAddresses
@@ -416,7 +451,7 @@ namespace BlockStorm.Infinity.CampaignManager
 
         public override string ToString()
         {
-            return $"地址: {TraderAddress} | 金额: {EthAmount.Value.ToString("#0.0000")} ETH | {((bool)Closed ? "已关门" : "未关门")}";
+            return $"地址: {TraderAddress.Substring(TraderAddress.Length - 6, 6)} | 金额: {EthAmount.Value.ToString("#0.0000")} ETH | {((bool)Closed ? "已关门" : "未关门")}";
         }
     }
 }
