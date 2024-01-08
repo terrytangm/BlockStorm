@@ -86,7 +86,7 @@ namespace BlockStorm.Samples
         private static string deployerCreate2 = "0x589720882ee47dD6c54E2C1f9a63E372d9A4c8C1";
         private static string mevBotAddress = "0x6b75d8AF000000e20B7a7DDf000Ba900b4009A80";
         private static string scamTokenAddress = "0xb3003f00435dc660074cc2945e54e1effc8be4db";
-        private static string tokenAddress = "0x75c33efc17c3f2449c4df2bc4356aab2c9b70193";
+        private static string tokenAddress = "0x4f434928762A24C30430f29C24aa5309851e1f01";
         static async Task Main(string[] args)
         {
             //GetAccountBalance(myWalletAddress).Wait();
@@ -135,20 +135,49 @@ namespace BlockStorm.Samples
             //上述程序最终部署合约地址0x8BAdF374E4920CCbdfCDE5B4e6a2a75eF0d1B000
 
 
-            /*回收trader资金
-            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
-            var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
-            var controllerOwnerPK = Config.GetControllerOwnerPK(chainID.ToString());
-            var controllerOwner = new Web3Accounts.Account(controllerOwnerPK);
-            var controllerOwnerAddr = controllerOwner.Address;
-            var controllerAddr = Config.GetControllerAddress(chainID.ToString());
-            var web3ForControllerOwner = new Web3(controllerOwner, httpURL);
-            var relayerAddr = Config.GetRelayerAddress(chainID.ToString());
-            var relayerHandler = web3ForControllerOwner.Eth.GetContractHandler(relayerAddr);
-            var wrappedNativeAddr = Config.GetWrappedNativeAddress(chainID.ToString());
-            var context = new BlockchainContext();
-            var accounts = context.Accounts.Where(a => a.Active).OrderBy(a => a.Id).ToList();
-            var gasPrice  = await web3ForControllerOwner.Eth.GasPrice.SendRequestAsync();
+            //回收trader资金
+            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            //var chainID = Config.ConfigInfo(null, ChainConfigPart.ChainID);
+            //var sender = new Web3Accounts.Account("95f64950ba856e7aff7551d2d1e48a4932a1136db3647f963e15b22083060ac7");
+            //var web3 = new Web3(sender, httpURL);
+            //var controllerOwnerPK = Config.GetControllerOwnerPK(chainID.ToString());
+            //var controllerOwner = new Web3Accounts.Account(controllerOwnerPK);
+            //var controllerOwnerAddr = controllerOwner.Address;
+            //var controllerAddr = Config.GetControllerAddress(chainID.ToString());
+            //var web3ForControllerOwner = new Web3(controllerOwner, httpURL);
+            //var relayerAddr = Config.GetRelayerAddress(chainID.ToString());
+            //var relayerHandler = web3ForControllerOwner.Eth.GetContractHandler(relayerAddr);
+            //var wrappedNativeAddr = Config.GetWrappedNativeAddress(chainID.ToString());
+            //var context = new BlockchainContext();
+            //var accounts = context.Accounts.Where(a => a.Active).OrderBy(a => a.Id).ToList();
+            //var gasPrice  = await web3.Eth.GasPrice.SendRequestAsync();
+            //for (int i = 0; i < 200; )
+            //{
+            //    var transactionInput = new TransactionInput
+            //    {
+            //        From = sender.Address,
+            //        To = "0x4360B2EaA89a88C09B684E6bf4b8569ff624572C",
+            //        Value = new HexBigInteger(new BigInteger(250000000000000)),
+            //        GasPrice = new HexBigInteger(10050),
+            //        Gas = new HexBigInteger(300000)
+            //        //Data = "0x646174613a2c7b2270223a226f70622d3230222c226f70223a226d696e74222c227469636b223a226f706273222c22616d74223a22313030303030303030227d"
+            //    };
+            //    try
+            //    {
+            //        var transactionHash = await web3.Eth.TransactionManager.SendTransactionAsync(transactionInput);
+            //        Output.WriteLine($"完成第{i + 1}个Txn, Hash: {transactionHash}");
+            //        i++;
+            //    }
+            //    catch (RpcResponseException ex) {
+            //        if (ex.Message.ToLower().Contains("limit"))
+            //        {
+            //            Output.WriteLine($"超速率限制，重试......{ex.Message}");
+            //        }
+            //    }
+            //}
+
+
+            /*
             var batchQueryERC20TokenBalancesFunction = new BatchQueryERC20TokenBalancesFunction
             {
                 Token = wrappedNativeAddr,
@@ -164,9 +193,10 @@ namespace BlockStorm.Samples
                 var account = new Web3Accounts.Account(accounts[i].PrivateKey);
                 var web3 = new Web3(account, httpURL);
                 var wrappedNativeContractHandler = web3.Eth.GetContractHandler(wrappedNativeAddr);
+                Output.WriteLine($"处理{accounts[i].Address}的WETH");
                 if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
                 {
-                    Output.WriteLine($"将{accounts[i].Address}的{Web3.Convert.FromWei(batchQueryERC20TokenBalancesFunctionReturn[i])}WBNB转为BNB");
+                    Output.WriteLine($"将{accounts[i].Address}的{Web3.Convert.FromWei(batchQueryERC20TokenBalancesFunctionReturn[i])}WETH转为ETH");
                     var withdrawFunction = new WithdrawFunction
                     {
                         Wad = batchQueryERC20TokenBalancesFunctionReturn[i],
@@ -176,63 +206,69 @@ namespace BlockStorm.Samples
                     var withdrawFunctionTxnReceipt = await wrappedNativeContractHandler.SendRequestAndWaitForReceiptAsync(withdrawFunction);
                     if(withdrawFunctionTxnReceipt.Succeeded())
                     {
-                        Output.WriteLine("转化成功");
+                        Output.WriteLine($"{account.Address}的{Web3.Convert.FromWei(batchQueryERC20TokenBalancesFunctionReturn[i])}WETH转化为ETH成功");
                         continue;
                     }
                 }
                 Output.WriteLineSymbols('*', 100);
 
             }
-
-
-            var batchQueryNativeBalancesFunction = new BatchQueryNativeBalancesFunction
-            {
-                Holders = accounts.Select(a => a.Address).ToList(),
-            };
-            var batchQueryNativeBalancesFunctionReturn = await relayerHandler.QueryAsync<BatchQueryNativeBalancesFunction, List<BigInteger>>(batchQueryNativeBalancesFunction);
-            var controllerContractHandlerForOwner = web3ForControllerOwner.Eth.GetContractHandler(controllerAddr);
-            var estimatedGas = await controllerContractHandlerForOwner.EstimateGasAsync<ReceiveNativeT0kensFunction>();
-            var gasReserve = gasPrice.Value * 3 / 2 * estimatedGas;
-            for (int i = 0; i < accounts.Count; i++)
-            {
-                if (batchQueryNativeBalancesFunctionReturn[i]> gasReserve)
-                {
-                    var account = new Web3Accounts.Account(accounts[i].PrivateKey);
-                    var web3 = new Web3(account, httpURL);
-
-                   var contollerContractHandler = web3.Eth.GetContractHandler(controllerAddr);
-                    var receiveEthFunction = new ReceiveNativeT0kensFunction
-                    {
-                        AmountToSend = batchQueryNativeBalancesFunctionReturn[i] - gasReserve
-                    };
-                    if (chainID == "56")
-                    {
-                        receiveEthFunction.GasPrice = gasPrice.Value * 3 / 2;
-                    }
-                    var receiveNativeT0kensFunctionTxnReceipt = await contollerContractHandler.SendRequestAndWaitForReceiptAsync<ReceiveNativeT0kensFunction>(receiveEthFunction);
-
-                    if (receiveNativeT0kensFunctionTxnReceipt.Succeeded())
-                    {
-                        Output.WriteLine($"{accounts[i]}的余额{Web3.Convert.FromWei(batchQueryNativeBalancesFunctionReturn[i])}BNB已转出");
-                    }
-                }
-                Output.WriteLineSymbols('*', 100);
-            }
             */
+
+            //var batchQueryNativeBalancesFunction = new BatchQueryNativeBalancesFunction
+            //{
+            //    Holders = accounts.Select(a => a.Address).ToList(),
+            //};
+            //var batchQueryNativeBalancesFunctionReturn = await relayerHandler.QueryAsync<BatchQueryNativeBalancesFunction, List<BigInteger>>(batchQueryNativeBalancesFunction);
+            //var controllerContractHandlerForOwner = web3ForControllerOwner.Eth.GetContractHandler(controllerAddr);
+            //var estimatedGas = await controllerContractHandlerForOwner.EstimateGasAsync<ReceiveNativeT0kensFunction>();
+            //var gasReserve = gasPrice.Value * 5 / 3 * estimatedGas;
+            //for (int i = 0; i < accounts.Count; i++)
+            //{
+            //    Output.WriteLine($"处理{accounts[i].Address}的{Web3.Convert.FromWei(batchQueryNativeBalancesFunctionReturn[i])}ETH");
+            //    //Output.WriteLine($"{accounts[i].PrivateKey}");
+            //    if (batchQueryNativeBalancesFunctionReturn[i] > gasReserve)
+            //    {
+            //        var account = new Web3Accounts.Account(accounts[i].PrivateKey);
+            //        var web3 = new Web3(account, httpURL);
+
+            //        var contollerContractHandler = web3.Eth.GetContractHandler(controllerAddr);
+            //        var receiveEthFunction = new ReceiveNativeT0kensFunction
+            //        {
+            //            AmountToSend = batchQueryNativeBalancesFunctionReturn[i] - gasReserve
+            //        };
+            //        if (chainID == "56")
+            //        {
+            //            receiveEthFunction.GasPrice = gasPrice.Value * 3 / 2;
+            //        }
+            //        var receiveNativeT0kensFunctionTxnReceipt = await contollerContractHandler.SendRequestAndWaitForReceiptAsync<ReceiveNativeT0kensFunction>(receiveEthFunction);
+
+            //        if (receiveNativeT0kensFunctionTxnReceipt.Succeeded())
+            //        {
+            //            Output.WriteLine($"{accounts[i]}的余额{Web3.Convert.FromWei(batchQueryNativeBalancesFunctionReturn[i])}ETH已转出");
+            //        }
+            //    }
+            //    else
+            //    {
+            //        Output.WriteLine("待转账余额小于预估的gas");
+            //    }
+            //    Output.WriteLineSymbols('*', 100);
+            //}
+
 
 
 
 
 
             //ContractHandler ch = web3.Eth.contrac
-            //var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
-            //var web3 = new Web3(httpURL);
-            //for (int i = 0; i < 10; i++)
-            //{
-            //    HexBigInteger position1 = new(BigInteger.Zero + i);
-            //    string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position1);
-            //    Output.WriteLine($"{i}:  {code}");
-            //}
+            var httpURL = Config.ConfigInfo(null, ChainConfigPart.HttpURL);
+            var web3 = new Web3(httpURL);
+            for (int i = 0; i < 10; i++)
+            {
+                HexBigInteger position1 = new(BigInteger.Zero + i);
+                string code = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position1);
+                Output.WriteLine($"{i}:  {code}");
+            }
             //var position = new HexBigInteger("0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0");
             //string code1 = await web3.Eth.GetStorageAt.SendRequestAsync(tokenAddress, position);
             //Output.WriteLine($"{code1}");
@@ -363,23 +399,23 @@ namespace BlockStorm.Samples
             //}
             //var testChainName = Config.GetValueByKey("TestChainConfig");
             //var testHttpURL = Config.ConfigInfo((ChainConfigName)Enum.Parse(typeof(ChainConfigName), testChainName), ChainConfigPart.HttpURL);
-            var testHttpURL = "HTTP://127.0.0.1:8555";
-            var client = new RpcClient(new Uri(testHttpURL));
+            //var testHttpURL = "HTTP://127.0.0.1:8555";
+            //var client = new RpcClient(new Uri(testHttpURL));
             ////var addressToImpersonate = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23"; // 您想冒充的地址
             ////var addressToImpersonate = "0x377De59906e38B9DDb6372B95B9454bc1563E18c";
             //var addressToSend = "0xF83fBE9F80cac7e27b9709693FC967DDfBFEbe23";
             ////var tokenContract = "0xff6fa06a7cf96703c6602aff4a1bb27921185f6b";
             ////var impersonatedAccount = new UnlockedAccount(addressToImpersonate);
             ////var web3 = new Web3(impersonatedAccount, client);
-            var ganacheTestAccPK = "0x0ce116d5e99badd90bb7c38bdad6f3a3c5b4b99fb3daf61e9b3aa3fd83be32c8";
-            var account = new Web3Accounts.Account(ganacheTestAccPK);
-            var web3 = new Web3(account, client);
-            var chainID = await web3.Eth.ChainId.SendRequestAsync();
-            var blockNumber = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
-            var coinbase = await web3.Eth.CoinBase.SendRequestAsync();
-            Console.WriteLine($"Block Number: {blockNumber}");
-            Console.WriteLine($"Coinbase: {coinbase}");
-            Console.WriteLine($"Chain ID: {chainID}");
+            //var ganacheTestAccPK = "0x0ce116d5e99badd90bb7c38bdad6f3a3c5b4b99fb3daf61e9b3aa3fd83be32c8";
+            //var account = new Web3Accounts.Account(ganacheTestAccPK);
+            //var web3 = new Web3(account, client);
+            //var chainID = await web3.Eth.ChainId.SendRequestAsync();
+            //var blockNumber = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
+            //var coinbase = await web3.Eth.CoinBase.SendRequestAsync();
+            //Console.WriteLine($"Block Number: {blockNumber}");
+            //Console.WriteLine($"Coinbase: {coinbase}");
+            //Console.WriteLine($"Chain ID: {chainID}");
 
             //var setCoinbase = new HardhatSetCoinbase(web3.Client);
             //await setCoinbase.SendRequestAsync(addressToSend);
@@ -475,6 +511,8 @@ namespace BlockStorm.Samples
 
             Console.ReadLine();
         }
+
+
 
         private static void Result_OnValueChanged(object? sender, ValueChangedEventArgs<string, decimal> e)
         {
