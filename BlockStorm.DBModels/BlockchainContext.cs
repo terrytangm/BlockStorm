@@ -8,8 +8,7 @@ namespace BlockStorm.EFModels;
 public partial class BlockchainContext : DbContext
 {
     public BlockchainContext()
-    {
-    }
+    {}
 
     public BlockchainContext(DbContextOptions<BlockchainContext> options)
         : base(options)

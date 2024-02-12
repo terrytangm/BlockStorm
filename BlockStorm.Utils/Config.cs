@@ -132,7 +132,7 @@ namespace BlockStorm.Utils
             }
             if (string.IsNullOrEmpty(chainConfigName))
             {
-                throw new Exception("TargetChainConfig does not exists in config");
+                throw new Exception("TargetChainConfig doesn't exist in config");
             }
 
             var section = config.GetSection("ChainConfigSection") as ChainConfigSelectionElement ?? throw new Exception("ChainConfigSection not found");

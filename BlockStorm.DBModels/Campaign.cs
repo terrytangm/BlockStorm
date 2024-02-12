@@ -5,7 +5,8 @@ namespace BlockStorm.EFModels;
 
 public partial class Campaign
 {
-    public long Id { get; set; }
+    public long Id { get; set; 
+    }
 
     public long ChainId { get; set; }
 

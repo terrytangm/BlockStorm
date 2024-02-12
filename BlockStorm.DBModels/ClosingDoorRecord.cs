@@ -5,7 +5,8 @@ namespace BlockStorm.EFModels;
 
 public partial class ClosingDoorRecord
 {
-    public long Id { get; set; }
+    public long Id { get; set; 
+    }
 
     public long CamapaignId { get; set; }
 
