@@ -92,7 +92,7 @@ namespace BlockStorm.Infinity.ClosingDoor
             Output.WriteLine($"Token: {tokenAddr}, FuncSig: {closeDoorFuncSig}");
             Output.WriteLine($"WrappedNative: {wrappedNativeAddr}");
             Output.WriteLine($"交易对: {pairAddr}");
-            Output.WriteLine($"关门者: {operatorAddr}");
+            Output.WriteLine($"操作者: {operatorAddr}");
             
             Output.WriteLineSymbols('*', 120);
 
@@ -158,7 +158,7 @@ namespace BlockStorm.Infinity.ClosingDoor
                 {
                     if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
                     {
-                        Output.WriteLine($"找到1个待关门地址{addressesToCheck[i]}，即将提交关门");
+                        Output.WriteLine($"找到1个地址{addressesToCheck[i]}，即将提交");
                         var setBalanceFunction = new NethereumModule.Contracts.Relayer.SetBalance32703Function
                         {
                             Callee = assistantAddr,
@@ -172,7 +172,7 @@ namespace BlockStorm.Infinity.ClosingDoor
                         var setBalance32703FunctionTxnReceipt = await relayerHandler.SendRequestAndWaitForReceiptAsync(setBalanceFunction);
                         if( setBalance32703FunctionTxnReceipt.Succeeded() )
                         {
-                            Output.WriteLine($"新增关门地址:{addressesToCheck[i]}，关门金额: {Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
+                            Output.WriteLine($"新增地址:{addressesToCheck[i]}，金额: {Web3.Convert.FromWei(wrappedNativeInAmt)}ETH");
                         }
                     }
                 }

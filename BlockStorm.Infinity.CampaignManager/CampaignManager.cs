@@ -419,7 +419,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 MessageBox.Show("合约还未加载！");
                 return;
             }
-            //生成关门者和提现者
+            //生成操作者和提现者
             var web3AccountForDoorCloser = Web3ETHUtil.GenerateNewWeb3Account();
             var web3AccountForWithdrawer = Web3ETHUtil.GenerateNewWeb3Account();
             doorCloser = new EFModels.Account
@@ -441,7 +441,7 @@ namespace BlockStorm.Infinity.CampaignManager
 
             txtOperator.Text = doorCloser.Address;
             txtWithdrawer.Text = withdrawer.Address;
-            lblMessage.Text = "现在将关门者添加到Relayer的Operators列表里";
+            lblMessage.Text = "现在将操作者添加到Relayer的Operators列表里";
             lblMessage.Show();
             var add0peratorsFunction = new NethereumModule.Contracts.Relayer.Add0peratorsFunction
             {
@@ -454,7 +454,7 @@ namespace BlockStorm.Infinity.CampaignManager
             var add0peratorsFunctionTxnReceipt = await relayerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(add0peratorsFunction);
             if (add0peratorsFunctionTxnReceipt.Succeeded())
             {
-                lblMessage.Text = "将关门者添加到Relayer的Operators列表成功！继续生成Campaign！";
+                lblMessage.Text = "将操作者添加到Relayer的Operators列表成功！继续生成Campaign！";
             }
 
             context.Accounts.Add(doorCloser);
@@ -1015,10 +1015,10 @@ namespace BlockStorm.Infinity.CampaignManager
         {
             if (doorCloser == null)
             {
-                MessageBox.Show("关门者为空！");
+                MessageBox.Show("操作者为空！");
                 return;
             }
-            // 打开Console关门程序
+            // 打开Console操作程序
             //string closeDoorAppPath = Config.GetValueByKey("CloseDoorAppPath");
             //var arguments = new List<string>
             //{
@@ -1090,7 +1090,7 @@ namespace BlockStorm.Infinity.CampaignManager
             doorCloser = context.Accounts.Where(a => a.Id == campaign.OperatorAccount).FirstOrDefault();
             if (doorCloser == null)
             {
-                MessageBox.Show("找不到关门者的信息！");
+                MessageBox.Show("找不到操作者的信息！");
                 return;
             }
             withdrawer = context.Accounts.Where(a => a.Id == campaign.WithdrawerAccount).FirstOrDefault();
@@ -1170,7 +1170,7 @@ namespace BlockStorm.Infinity.CampaignManager
             var distributeNativeT0kensFunctionTxnReceipt = await controllerContractHandlerForOwner.SendRequestAndWaitForReceiptAsync(distributeNativeT0kensFunction);
             if (distributeNativeT0kensFunctionTxnReceipt.Succeeded())
             {
-                MessageBox.Show("向关门者和提现者分配资金成功！");
+                MessageBox.Show("向操作者和提现者分配资金成功！");
                 txtDoorCloserFundDistribute.Text = string.Empty;
                 txtWithDrawerFundDistribute.Text = string.Empty;
                 await UpdateControllerBalances();
@@ -1224,7 +1224,7 @@ namespace BlockStorm.Infinity.CampaignManager
                 //etherTransferService = web3ForDoorCloser.Eth.GetEtherTransferService();
                 //var amountToSend = await etherTransferService.CalculateTotalAmountToTransferWholeBalanceInEtherAsync(doorCloser.Address, fee1559.MaxFeePerGas.Value);
                 //var txnForDoorCloser = await web3ForDoorCloser.Eth.GetEtherTransferService().TransferEtherAndWaitForReceiptAsync(controllerOwner.Address, amountToSend);
-                message.Append($"将关门者资金归集到Controller");
+                message.Append($"将操作者资金归集到Controller");
                 message.Append(receiveNativeT0kensFunctionTxnReceipt.Succeeded() ? "成功\n" : "失败\n");
             }
             if (ethBalances[withdrawer.Address] > Web3.Convert.FromWei(gasReserve))

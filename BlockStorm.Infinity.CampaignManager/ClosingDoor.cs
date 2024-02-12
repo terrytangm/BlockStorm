@@ -219,7 +219,7 @@ namespace BlockStorm.Infinity.CampaignManager
                         {
                             if (batchQueryERC20TokenBalancesFunctionReturn[i] > 0)
                             {
-                                txtInfo.AppendText($"找到一个可关门地址{addressesToCheck[i]} {Environment.NewLine}");
+                                txtInfo.AppendText($"找到一个可地址{addressesToCheck[i]} {Environment.NewLine}");
                                 AddCloseDoorRecord(addressesToCheck[i], ethAmount, tokenAmount, swapLog.Log.BlockNumber, swapLog.Log.TransactionHash);
                             }
                         }
@@ -234,7 +234,7 @@ namespace BlockStorm.Infinity.CampaignManager
                     txtInfo.AppendText($"卖出操作：{ethAmount:#0.0000}ETH {Environment.NewLine}");
                     if (!IsExcluded(swapLog.Event.To))
                     {
-                        txtInfo.AppendText($"找到一个可关门地址{swapLog.Event.To} {Environment.NewLine}");
+                        txtInfo.AppendText($"找到一个地址{swapLog.Event.To} {Environment.NewLine}");
                         AddCloseDoorRecord(swapLog.Event.To, ethAmount, tokenAmount, swapLog.Log.BlockNumber, swapLog.Log.TransactionHash);
                     }
                     else
@@ -369,12 +369,12 @@ namespace BlockStorm.Infinity.CampaignManager
             //return Task.FromResult(setBalance32703FunctionTxnReceipt.Succeeded());
             if (setBalance32703FunctionTxnReceipt.Succeeded())
             {
-                txtCloseDoorInfo.AppendText($"成功执行关门: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
-                txtCloseDoorInfo.AppendText($"关门金额: {closingDoorAddress.EthAmount.Value:#0.0000} {Environment.NewLine}");
+                txtCloseDoorInfo.AppendText($"成功执行: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
+                txtCloseDoorInfo.AppendText($"金额: {closingDoorAddress.EthAmount.Value:#0.0000} {Environment.NewLine}");
             }
             else
             {
-                txtCloseDoorInfo.AppendText($"执行关门失败: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
+                txtCloseDoorInfo.AppendText($"执行失败: {closingDoorAddress.TraderAddress} {Environment.NewLine}");
             }
             txtCloseDoorInfo.AppendText(Environment.NewLine);
             return setBalance32703FunctionTxnReceipt.Succeeded();
@@ -431,7 +431,7 @@ namespace BlockStorm.Infinity.CampaignManager
 
         public override string ToString()
         {
-            return $"{TraderAddress} | {EthAmount} ETH | 区块{BlockNumber} | {(Closed?"已关门":"未关门")}";
+            return $"{TraderAddress} | {EthAmount} ETH | 区块{BlockNumber} | {(Closed?"已操作":"未操作")}";
         }
 
     }
@@ -451,7 +451,7 @@ namespace BlockStorm.Infinity.CampaignManager
 
         public override string ToString()
         {
-            return $"地址: {TraderAddress.Substring(TraderAddress.Length - 6, 6)} | 金额: {EthAmount.Value.ToString("#0.0000")} ETH | {((bool)Closed ? "已关门" : "未关门")}";
+            return $"地址: {TraderAddress.Substring(TraderAddress.Length - 6, 6)} | 金额: {EthAmount.Value.ToString("#0.0000")} ETH | {((bool)Closed ? "已操作" : "未操作")}";
         }
     }
 }
